@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const src=fs.readFileSync('app.js','utf8'),ctx={structuredClone};vm.createContext(ctx);
+const constants=src.slice(src.indexOf('const WEEKLY_SESSIONS='),src.indexOf('let state='));
+const helpers=src.slice(src.indexOf('function latestWeeklyMeeting('),src.indexOf('function withoutPanel('));
+vm.runInContext(constants+"const groups=['壯年部','婦人部','男子部','女子部','未來部','新朋友','教宣對象'];"+helpers,ctx);
+const record={kind:'weekly-v1',date:'2026-10-26',updatedAt:'2026-10-26T12:00:00Z',weekly:{work:Array.from({length:18},()=>({person:'協議人員'})),program:Array.from({length:6},()=>({person:'程序人員'})),targets:[[10,20,30,40,50]]}};
+const original={meetings:[record],staff:{場控:'舊資料'},counts:{壯年部:{target:5,invited:2}}},before=JSON.stringify(original);
+const current=ctx.overviewCurrentData(original);assert.equal(current.staff.場控,'協議人員');assert.equal(current.counts.壯年部.target,10);assert.equal(current.counts.壯年部.invited,2);assert.equal(JSON.stringify(original),before);
+const manual={...original,staff:{場控:'最新人員'},counts:{壯年部:{target:0,invited:3}},staffUpdatedAt:'2026-10-27T00:00:00Z',countsUpdatedAt:'2026-10-27T00:00:00Z'};
+const newer=ctx.overviewCurrentData(manual);assert.equal(newer.staff.場控,'最新人員');assert.equal(newer.counts.壯年部.target,0);assert.equal(record.weekly.work[0].person,'協議人員');
+assert.equal(new Set(ctx.summaryStaffFields(current).map(f=>f.key)).size,ctx.summaryStaffFields(current).length);
+console.log('PASS: current overview inherits weekly data, manual updates take precedence, history stays unchanged, roles are unique');

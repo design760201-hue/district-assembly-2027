@@ -1,0 +1,18 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const src=fs.readFileSync('app.js','utf8'),ctx={structuredClone};vm.createContext(ctx);
+const schedule=src.slice(src.indexOf('const SCHEDULE='),src.indexOf('const KEY='));
+const constants=src.slice(src.indexOf('const WEEKLY_SESSIONS='),src.indexOf('let reportRound='));
+const planning=src.slice(src.indexOf('function districtWeeklySessions('),src.indexOf('function weeklyMeeting('));
+const reports=src.slice(src.indexOf('function reportRecord('),src.indexOf('function reportRows('));
+const dates="function today(){return '2026-10-25'} function datePlus(s,n){return new Date(Date.parse(s+'T12:00:00Z')+n*86400000).toISOString().slice(0,10)};";
+vm.runInContext(schedule+constants+planning+dates+reports+'this.schedule=SCHEDULE;',ctx);
+const s=ctx.schedule[0],d={meetings:[]};assert.equal(ctx.reportState(s,d,1).key,'missing');assert.equal(ctx.reportState(s,d,7).key,'na');assert.equal(ctx.reportState(s,d,1,'2026-10-28').overdue,false);assert.equal(ctx.reportState(s,d,1,'2026-10-29').overdue,true);
+const m={kind:'weekly-v1',round:'1',date:'2026-10-26',updatedAt:'2026-10-26T10:00:00Z',recorder:'測試',meetingTime:'19:30',location:'文化會堂',attendees:'四部幹部',decisions:'確認各部安排',pending:'無',weekly:{targets:Array.from({length:3},()=>Array(5).fill(0)),work:Array.from({length:18},()=>({person:'不適用',notes:''})),program:Array.from({length:6},()=>({person:'測試人員',notes:''})),districtGoal:'全員出席',sandDate:'2026-11-16'}};d.meetings=[m];assert.equal(ctx.reportIssues(m).length,0);assert.equal(ctx.reportState(s,d,1).key,'pending');m.reporting={confirmedAt:'2026-10-26T11:00:00Z',confirmedBy:'確認人'};assert.equal(ctx.reportState(s,d,1).key,'confirmed');m.updatedAt='2026-10-26T12:00:00Z';assert.equal(ctx.reportState(s,d,1).key,'pending');m.weekly.work[0].notes='待確認';assert(ctx.reportIssues(m).some(x=>x.includes('分工')));m.weekly.targets[0][0]='';assert(ctx.reportIssues(m).some(x=>x.includes('1 格')));
+const expected=[22,22,22,22,22,22,18,13,6];expected.forEach((n,i)=>assert.equal(ctx.schedule.filter(s=>ctx.reportState(s,{meetings:[]},i+1).key!=='na').length,n));
+console.log('PASS: 9 weekly applicability totals, deadline, zero counts, unresolved notes, explicit confirmation, edits invalidate confirmation');
+const confirm=src.slice(src.indexOf('function confirmReport('),src.indexOf('function bindReporting('));
+ctx.cloudEnabled=()=>false;ctx.state={version:1,districts:{光興:{meetings:[structuredClone(m)]}}};ctx.persist=next=>{ctx.state=next;return true};vm.runInContext(confirm,ctx);
+assert.throws(()=>ctx.confirmReport('光興',undefined,'確認人'));
+assert.throws(()=>ctx.confirmReport('光興',undefined,' '));
+const clean=ctx.state.districts.光興.meetings[0];clean.id='clean';clean.weekly.work[0].notes='';clean.weekly.targets[0][0]=0;assert(ctx.confirmReport('光興','clean',' 陳創價 '));assert.equal(ctx.state.districts.光興.meetings[0].reporting.confirmedBy,'陳創價');
+console.log('PASS: missing/blank confirmation rejected, valid confirmation saved independently');
