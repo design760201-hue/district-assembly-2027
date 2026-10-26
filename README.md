@@ -6,8 +6,8 @@
 
 運營紀錄確認送出後，自動將內容帶入今年的 Word 範本，依選取週次上傳到指定資料夾。其他幹部使用原有 Google 雲端資料夾取檔。網站不提供雲端資料夾入口、位置設定或管理總覽。
 
-共用代碼會在同一裝置記住；代碼不放在公開程式或設定內。`cloud-config.json` 只保存 Apps Script 服務網址。設定 `testMode:true` 可使用獨立測試資料庫；正式網站為 false。
+網站直接填寫送出，無需代碼。網站只提供送入服務，不提供匿名讀取他人運營紀錄或空白範本；文件仍由原有 Google 雲端權限控管。`cloud-config.json` 只保存 Apps Script 服務網址。設定 `testMode:true` 可使用獨立測試資料庫；正式網站為 false。
 
-`build.py` 組合 `styles.css`、`word-export.js`、`cloud-client.js`、`app.js` 成為 `index.html`。Word 空白範本保存在私人 Google 雲端資料夾，通過共用代碼驗證後由服務讀取；不放到公開網站或 GitHub。`cloud/Code.gs` 是 Google 服務原始碼，管理員設定與代碼雜湊只注入私人的 Apps Script 專案。
+`build.py` 組合 `styles.css`、`cloud-client.js`、`app.js` 成為 `index.html`。Word 空白範本保存在私人 Google 雲端資料夾，由私人服務直接產生 Word，不傳回網站；不放到公開網站或 GitHub。`cloud/Code.gs` 是 Google 服務原始碼，管理員設定與代碼雜湊只注入私人的 Apps Script 專案。
 
 自動產檔、指定週次歸檔、稿件上傳與跨瀏覽器讀取已用獨立測試資料驗證。
