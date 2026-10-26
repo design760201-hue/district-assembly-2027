@@ -11,3 +11,5 @@
 `build.py` 組合 `styles.css`、`cloud-client.js`、`app.js` 成為 `index.html`。Word 空白範本保存在私人 Google 雲端資料夾，由私人服務直接產生 Word，不傳回網站；不放到公開網站或 GitHub。`cloud/Code.gs` 是 Google 服務原始碼，管理員設定與代碼雜湊只注入私人的 Apps Script 專案。
 
 自動產檔、指定週次歸檔、稿件上傳與跨瀏覽器讀取已用獨立測試資料驗證。
+
+運營 Word 檔名使用「光興地區－10月26日－第一次運營紀錄表.docx」格式，依地區、日期與運營次數自動調整。防重複識別碼保存在檔案說明與系統紀錄，不放進完成檔名。
