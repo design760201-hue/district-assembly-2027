@@ -35,6 +35,8 @@
 .submission-success{width:min(520px,calc(100vw - 32px))}.success-content{padding:8px 24px 16px;overflow-y:auto}.submission-success .review-footer button{width:100%;white-space:normal;line-height:1.5}.overview-record h2{margin-bottom:8px}.overview-record .report-content{margin-top:16px}@media(max-width:700px){.success-content{padding:8px 16px 16px}}
 
 .support-roster-table{min-width:0;width:100%;table-layout:fixed}.support-roster-table th{white-space:normal;overflow-wrap:anywhere}.support-roster-table th:first-child{width:58%}.support-roster-table td{vertical-align:top;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.operating-agenda h2{margin-bottom:8px}.agenda-notice{margin:0 0 20px;color:#9e3535;font-weight:600}.operating-agenda-table{min-width:0;width:100%;table-layout:fixed;border:1px solid var(--line)}.operating-agenda-table th,.operating-agenda-table td{white-space:normal;overflow-wrap:anywhere;vertical-align:middle;border:1px solid var(--line);padding:14px 12px}.operating-agenda-table thead th{background:var(--pale);color:var(--ink);font-size:15px}.operating-agenda-table thead th:first-child{width:6%}.operating-agenda-table thead th:nth-child(2){width:27%}.operating-agenda-table thead th:nth-child(3){width:32%}.operating-agenda-table .agenda-program{white-space:pre-line;background:#fff;color:var(--ink);font-size:16px}.agenda-number{text-align:center;font-weight:600;font-variant-numeric:tabular-nums}.agenda-content div+div{margin-top:8px}.agenda-emphasis{color:#a52b2b;font-weight:600}.agenda-cell-label{display:none}@media(max-width:700px){.operating-agenda-table,.operating-agenda-table tbody{display:block;border:0}.operating-agenda-table thead{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.operating-agenda-table tbody tr{display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:12px;row-gap:8px;padding:16px 0;border-bottom:1px solid var(--line)}.operating-agenda-table tbody tr:first-child{border-top:1px solid var(--line)}.operating-agenda-table th,.operating-agenda-table td{display:block;padding:0;border:0;font-size:16px}.operating-agenda-table .agenda-number{grid-column:1;grid-row:1;color:var(--blue);text-align:left}.operating-agenda-table .agenda-program{grid-column:2;grid-row:1}.operating-agenda-table .agenda-owner,.operating-agenda-table .agenda-content{grid-column:2}.operating-agenda-table .agenda-content:empty{display:none}.agenda-cell-label{display:block;color:var(--muted);font-size:14px;margin-bottom:2px}.operating-agenda h2{font-size:21px}.agenda-notice{font-size:14px}}
 </style></head>
 <body><div class="shell"><aside class="sidebar"><div class="brand">地區友好總會</div><div class="subbrand">台中南區 · 2027 年度</div><nav class="nav" aria-label="主要功能"><button data-page="overview">總會總覽</button><button data-page="district">地區工作區</button></nav><div class="side-note"><b>異體同心 · 勇躍前進</b><p>晴爽、歡喜、無事故<br>全員出席、大勝利<br>異體同心、人才輩出</p></div></aside><main class="main"><header class="topbar"><small>邁向創立一百週年 勇躍前進之年</small><span class="local">目前瀏覽器儲存 · 尚未共用</span></header><div class="content" id="content"></div></main></div><div class="toast" id="toast" role="status" aria-live="polite" hidden></div><script>'use strict';
 let cloudDirectory={districts:{}};
@@ -265,7 +267,21 @@ function externalMeeting(d){const route=selectedFormRoute();const options=route?
 function formEntryContent(group){if(!group)return '<p class="form-empty muted">選擇組別後，會自動帶入對應支部與地區組別。</p>';return `<div class="form-open-bar"><p>將帶入：<b>${esc(group)}</b>。進入後填寫姓名及回報內容，最後按 Google 表單內的「提交」。</p><a class="btn primary" id="open-google-form" href="${esc(externalFormUrl())}" target="_blank" rel="noopener noreferrer">進入頁面填寫</a></div><p class="saved-note">表單含登入與照片上傳，將另開 Google 填寫頁。支部與組別已預先帶入；若出現草稿選擇，請核對使用的是本次選取的組別。</p><p class="saved-note">提交結果以 Google 表單的完成畫面為準。網站目前無法讀取表單回覆，首頁舊版紀錄份數不包含這份表單的新回報。</p>`}
 function bindGoogleForm(){const select=$('#report-group');if(select)select.onchange=e=>{formGroupSelections[selected]=e.target.value;$('#google-form-content').innerHTML=formEntryContent(e.target.value)}}
 
-function meeting(d){const current=overviewCurrentData(d);return weeklyMeeting(current)+counts(current)+taskForm(current)}
+function meeting(d){const current=overviewCurrentData(d);return operatingAgenda()+weeklyMeeting(current)+counts(current)+taskForm(current)}
+function operatingAgenda(){
+  const rows=[
+    ['勤行唱題','壯婦職務最高幹部',''],
+    ['報告程序','地區男子部長',''],
+    ['共讀《創價新聞》\n第四版【信心園地】','四部輪值',''],
+    ['傳達本次運營重點','地區男子部長',''],
+    ['各部組報告','四部地區正長 /各部組負責人',''],
+    ['議題協商','以四部地區正長中心合議',''],
+    ['本次決議報告','地區女子部長',''],
+    ['指導','壯婦職務最高幹部',''],
+    ['題目三唱','壯婦職務最高幹部','']
+  ];
+  return `<section class="panel operating-agenda" aria-labelledby="operating-agenda-heading"><h2 id="operating-agenda-heading">每週地區總會運營程序一覽表</h2><p class="agenda-notice">每週實際程序，請依當週傳達程序為主</p><table class="operating-agenda-table"><thead><tr><th scope="col">序</th><th scope="col">程序</th><th scope="col">擔當者</th><th scope="col">內容</th></tr></thead><tbody>${rows.map(([program,owner],i)=>`<tr><td class="agenda-number">${i+1}</td><th scope="row" class="agenda-program">${esc(program)}</th><td class="agenda-owner"><span class="agenda-cell-label">擔當者</span>${esc(owner)}</td><td class="agenda-content">${i===3?'<span class="agenda-cell-label">內容</span><div>1.<span class="agenda-emphasis">地區友好總會企劃案<br>（第一次運營報告）</span></div><div>2.總會運營注意事項</div>':''}</td></tr>`).join('')}</tbody></table></section>`;
+}
 function weeklyInput(label,name,value='',type='text',readonly=false){return `<input aria-label="${esc(label)}" name="${esc(name)}" type="${type}" ${type==='number'?'min="0" max="100000" step="1"':''} ${readonly?'readonly':''} value="${esc(value)}" maxlength="10000">`}
 function districtWeeklySessions(s){return WEEKLY_SESSIONS.filter(v=>v[0]<s.date)}
 function weeklySandDate(s,m){const allowed=districtWeeklySessions(s).map(v=>v[0]);const date=m.weekly?.sandDate??m.weekly?.plan?.find(v=>v.label==='沙推')?.date??'';return allowed.includes(date)?date:''}

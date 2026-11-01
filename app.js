@@ -190,7 +190,21 @@ function externalMeeting(d){const route=selectedFormRoute();const options=route?
 function formEntryContent(group){if(!group)return '<p class="form-empty muted">選擇組別後，會自動帶入對應支部與地區組別。</p>';return `<div class="form-open-bar"><p>將帶入：<b>${esc(group)}</b>。進入後填寫姓名及回報內容，最後按 Google 表單內的「提交」。</p><a class="btn primary" id="open-google-form" href="${esc(externalFormUrl())}" target="_blank" rel="noopener noreferrer">進入頁面填寫</a></div><p class="saved-note">表單含登入與照片上傳，將另開 Google 填寫頁。支部與組別已預先帶入；若出現草稿選擇，請核對使用的是本次選取的組別。</p><p class="saved-note">提交結果以 Google 表單的完成畫面為準。網站目前無法讀取表單回覆，首頁舊版紀錄份數不包含這份表單的新回報。</p>`}
 function bindGoogleForm(){const select=$('#report-group');if(select)select.onchange=e=>{formGroupSelections[selected]=e.target.value;$('#google-form-content').innerHTML=formEntryContent(e.target.value)}}
 
-function meeting(d){const current=overviewCurrentData(d);return weeklyMeeting(current)+counts(current)+taskForm(current)}
+function meeting(d){const current=overviewCurrentData(d);return operatingAgenda()+weeklyMeeting(current)+counts(current)+taskForm(current)}
+function operatingAgenda(){
+  const rows=[
+    ['勤行唱題','壯婦職務最高幹部',''],
+    ['報告程序','地區男子部長',''],
+    ['共讀《創價新聞》\n第四版【信心園地】','四部輪值',''],
+    ['傳達本次運營重點','地區男子部長',''],
+    ['各部組報告','四部地區正長 /各部組負責人',''],
+    ['議題協商','以四部地區正長中心合議',''],
+    ['本次決議報告','地區女子部長',''],
+    ['指導','壯婦職務最高幹部',''],
+    ['題目三唱','壯婦職務最高幹部','']
+  ];
+  return `<section class="panel operating-agenda" aria-labelledby="operating-agenda-heading"><h2 id="operating-agenda-heading">每週地區總會運營程序一覽表</h2><p class="agenda-notice">每週實際程序，請依當週傳達程序為主</p><table class="operating-agenda-table"><thead><tr><th scope="col">序</th><th scope="col">程序</th><th scope="col">擔當者</th><th scope="col">內容</th></tr></thead><tbody>${rows.map(([program,owner],i)=>`<tr><td class="agenda-number">${i+1}</td><th scope="row" class="agenda-program">${esc(program)}</th><td class="agenda-owner"><span class="agenda-cell-label">擔當者</span>${esc(owner)}</td><td class="agenda-content">${i===3?'<span class="agenda-cell-label">內容</span><div>1.<span class="agenda-emphasis">地區友好總會企劃案<br>（第一次運營報告）</span></div><div>2.總會運營注意事項</div>':''}</td></tr>`).join('')}</tbody></table></section>`;
+}
 function weeklyInput(label,name,value='',type='text',readonly=false){return `<input aria-label="${esc(label)}" name="${esc(name)}" type="${type}" ${type==='number'?'min="0" max="100000" step="1"':''} ${readonly?'readonly':''} value="${esc(value)}" maxlength="10000">`}
 function districtWeeklySessions(s){return WEEKLY_SESSIONS.filter(v=>v[0]<s.date)}
 function weeklySandDate(s,m){const allowed=districtWeeklySessions(s).map(v=>v[0]);const date=m.weekly?.sandDate??m.weekly?.plan?.find(v=>v.label==='沙推')?.date??'';return allowed.includes(date)?date:''}
