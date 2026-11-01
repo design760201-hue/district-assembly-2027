@@ -10,3 +10,12 @@ const manual={...original,staff:{場控:'最新人員'},counts:{壯年部:{targe
 const newer=ctx.overviewCurrentData(manual);assert.equal(newer.staff.場控,'最新人員');assert.equal(newer.counts.壯年部.target,0);assert.equal(record.weekly.work[0].person,'協議人員');
 assert.equal(new Set(ctx.summaryStaffFields(current).map(f=>f.key)).size,ctx.summaryStaffFields(current).length);
 console.log('PASS: current overview inherits weekly data, manual updates take precedence, history stays unchanged, roles are unique');
+// The overview must never offer a second entry point for data entry.
+Object.assign(ctx,{summaryRecordId:null,esc:v=>String(v??''),completion:()=>({done:0,total:1,pct:0}),districtSupport:()=>'',timeline:()=>'',dateLabel:v=>v,reportRecordContent:()=>'',tasks:[['測試籌備項目']],selected:'光興'});
+vm.runInContext(src.slice(src.indexOf('function consolidatedSummary('),src.indexOf('function bindOperationalForms(')),ctx);
+const readOnly=ctx.consolidatedSummary({date:'2026-12-03',time:'19:50',rehearsal:'2026-11-21',rehearsalTime:'19:50',venue:'文化會堂',support:'坪林'},{...original,tasks:{}});
+assert(!/<(?:form|input|textarea|select)\b/.test(readOnly));assert(!readOnly.includes('修改工作分工'));assert(!readOnly.includes('修改人數統計'));assert(!readOnly.includes('更新籌備進度'));assert(readOnly.includes('工作分工'));assert(readOnly.includes('人數統計'));assert(readOnly.includes('籌備進度'));
+ctx.overviewCurrentData=d=>d;ctx.weeklyMeeting=()=>'<form id="meeting-form"></form>';ctx.counts=()=>'<form id="counts-form"></form>';ctx.taskForm=()=>'<form id="tasks-form"></form>';
+vm.runInContext(src.slice(src.indexOf('function meeting(d)'),src.indexOf('function weeklyInput(')),ctx);
+const operational=ctx.meeting({});assert(operational.includes('id="meeting-form"'));assert(operational.includes('id="counts-form"'));assert(operational.includes('id="tasks-form"'));
+console.log('PASS: overview has no forms or data-entry controls; meeting page retains operation, count and preparation entry points');
