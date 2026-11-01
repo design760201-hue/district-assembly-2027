@@ -42,13 +42,14 @@ function shortenExistingReportNames_(){let changed=0;CFG.sessions.forEach(functi
 function assemblyDirectory_(){
   const cache=CacheService.getScriptCache(),key='assembly-roster-v1';
   const saved=cache.get(key);if(saved)return JSON.parse(saved);
-  const book=SpreadsheetApp.openById(CFG.directorySpreadsheet);
-  const sheet=book.getSheets().find(function(s){return s.getSheetId()===482537925});
+  const book=Sheets.Spreadsheets.get(CFG.directorySpreadsheet,{ranges:["'總會程序擔當總表'!A1:AR24"],fields:'sheets(properties(sheetId),data(rowData(values(formattedValue))))'});
+  const sheet=book.sheets.find(function(s){return s.properties.sheetId===482537925});
   if(!sheet)throw Error('找不到指定的幹部總表');
-  const header=sheet.getRange(1,1,2,44).getDisplayValues();
+  const rows=(sheet.data[0].rowData||[]).map(function(row){return Array.from({length:44},function(_,i){return row.values&&row.values[i]&&row.values[i].formattedValue||''})});
+  const header=rows.slice(0,2);
   if(header[0][1]!=='地區'||header[0][21].indexOf('青年部投入幹部')<0||header[0][43].indexOf('指導前輩')<0)throw Error('幹部總表欄位已變更');
   const districts={},clean=function(v){return String(v||'').trim().slice(0,500)};
-  sheet.getRange(3,1,22,44).getDisplayValues().forEach(function(row){
+  rows.slice(2,24).forEach(function(row){
     const name=clean(row[1]).replace(/地區$/,'');if(!Object.prototype.hasOwnProperty.call(CFG.districts,name))return;
     districts[name]={youthMale:clean(row[21]),youthFemale:clean(row[22]),encouragementTitle:clean(row[23]),encouragementName:clean(row[24]),supportMale:clean(row[25]),supportFemale:clean(row[26]),guidance:clean(row[43])};
   });
