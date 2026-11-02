@@ -13,8 +13,13 @@ const WEEKLY_PROGRAM=[['司儀','司儀（男）','司儀人選與訓練安排']
 const WEEKLY_GROUPS=['壯年部','婦人部','男子部（含學生部）','女子部（含學生部）','未來部'];
 const WEEKLY_TARGET_ROWS=['目標數','新朋友','教宣對象'];
 let reportRound=1,reportFilter='attention',reportQuery='',reportDemo=false;
+function removeRetiredTestRecord(db){
+  const district=db.districts?.光興;if(!Array.isArray(district?.meetings))return false;
+  const before=district.meetings.length;district.meetings=district.meetings.filter(m=>!(m.id==='光興-weekly-1'&&m.date==='2026-10-26'&&m.updatedAt==='2026-10-30T10:44:12.738Z'));
+  return district.meetings.length!==before;
+}
 let state={version:1,districts:{}};let loadError='';
-try{const raw=localStorage.getItem(KEY);if(raw){const data=JSON.parse(raw);validate(data);state=data}}catch(e){loadError='既有資料無法讀取，請勿覆寫；可先匯出原始資料備份，再重新整理或匯入有效備份。'}
+try{const raw=localStorage.getItem(KEY);if(raw){const data=JSON.parse(raw);validate(data);const cleaned=removeRetiredTestRecord(data);state=data;if(cleaned){try{localStorage.setItem(KEY,JSON.stringify(data))}catch{}}}}catch(e){loadError='既有資料無法讀取，請勿覆寫；可先匯出原始資料備份，再重新整理或匯入有效備份。'}
 const PIN_KEY=KEY+'-pins';
 let pinned=[];let otherDistrictsOpen=false;
 try{const saved=JSON.parse(localStorage.getItem(PIN_KEY)||'[]');if(Array.isArray(saved))pinned=[...new Set(saved.filter(n=>SCHEDULE.some(s=>s.name===n)))];}catch{}
