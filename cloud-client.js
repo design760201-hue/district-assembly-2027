@@ -34,7 +34,7 @@ async function cloudLoad(silent=false){
     else toast('共用資料暫時無法更新：'+e.message);
   }finally{cloudLoading=false}
 }
-function cloudBusyUi(value){cloudBusy=value;document.querySelectorAll('#content button[type="submit"]').forEach(b=>b.disabled=value);const b=document.getElementById('cloud-refresh');if(b)b.disabled=value;const status=document.querySelector('.cloud-panel b');if(status)status.textContent=value?'正在上傳 Google 雲端…':cloudConnected?(cloudTestMode?'測試環境 · 已就緒':'自動上傳已就緒'):'正在連接雲端…';window.onbeforeunload=value?()=>true:null}
+function cloudBusyUi(value){cloudBusy=value;document.querySelectorAll('#meeting-form input,#meeting-form select,#meeting-form textarea,#counts-form input,#counts-form textarea,#tasks-form select,#tasks-form textarea').forEach(el=>{if(value){el.dataset.beforeUploadDisabled=String(el.disabled);el.disabled=true}else if(el.dataset.beforeUploadDisabled!==undefined){el.disabled=el.dataset.beforeUploadDisabled==='true';delete el.dataset.beforeUploadDisabled}});const whole=document.getElementById('submit-whole-report');if(whole){whole.disabled=value;whole.textContent=value?'正在送出全部資料…':'確認並送出全部資料'}const progress=document.getElementById('whole-report-status');if(progress)progress.textContent=value?'正在送出，請等待完成訊息':'本頁資料尚未送出';document.querySelectorAll('#content button[type="submit"]').forEach(b=>b.disabled=value);const b=document.getElementById('cloud-refresh');if(b)b.disabled=value;const status=document.querySelector('.cloud-panel b');if(status)status.textContent=value?'正在上傳 Google 雲端…':cloudConnected?(cloudTestMode?'測試環境 · 已就緒':'自動上傳已就緒'):'正在連接雲端…';window.onbeforeunload=value?()=>true:null}
 async function blobBase64(blob){const bytes=new Uint8Array(await blob.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(binary)}
 function cloudSuccess(message,url){render();toast(message);if(url){const n=document.createElement('div');n.className='cloud-receipt';n.setAttribute('role','status');n.textContent='Word 已成功上傳至本次運營資料夾，填寫完成。';document.querySelector('.weekly-meeting')?.prepend(n)}}
 function showMeetingSuccess(record){
@@ -42,13 +42,32 @@ function showMeetingSuccess(record){
   dialog.className='submission-review submission-success';
   dialog.setAttribute('aria-labelledby','submission-success-title');
   dialog.setAttribute('aria-describedby','submission-success-message');
-  dialog.innerHTML=`<div class="review-heading"><h2 id="submission-success-title">運營紀錄已送出</h2><p>${esc(record.district)}地區 · ${esc(dateLabel(record.date))}</p></div><div class="success-content"><p id="submission-success-message">Word 已存入雲端資料夾。</p><p class="muted">返回地區總覽，確認本次的人員分工、人數目標與運營內容。</p></div><div class="review-footer"><button type="button" class="btn primary" autofocus>返回地區總覽，查看本次資料</button></div>`;
+  dialog.innerHTML=`<div class="review-heading"><h2 id="submission-success-title">運營紀錄已送出</h2><p>${esc(record.district)}地區 · ${esc(dateLabel(record.date))}</p></div><div class="success-content"><p id="submission-success-message">${record.statistics?'全部資料已儲存，Word 已存入雲端資料夾。':'Word 已存入雲端資料夾。'}</p><p class="muted">返回地區總覽，確認本次的人員分工、人數目標與運營內容。</p></div><div class="review-footer"><button type="button" class="btn primary" autofocus>返回地區總覽，查看本次資料</button></div>`;
   const returnToSummary=()=>{summaryRecordId=record.id;go('district',record.district,'summary');$('#summary-record-heading')?.focus()};
   dialog.onclose=()=>{dialog.remove();returnToSummary()};
   dialog.querySelector('button').onclick=()=>dialog.close();
   document.body.append(dialog);dialog.showModal();
 }
 async function cloudSaveMeeting(m){if(!cloudConnected){cloudError='請先連接共用雲端再送出';toast(cloudError+'，輸入內容已保留。');return}if(cloudBusy)return;cloudBusyUi(true);try{const normalized={...m};delete normalized.id;delete normalized.updatedAt;delete normalized.cloud;const fingerprint=JSON.stringify(normalized);if(!cloudOperation||cloudOperation.fingerprint!==fingerprint)cloudOperation={fingerprint,id:crypto.randomUUID()};const old=data(m.district).meetings.find(v=>v.kind==='weekly-v1'&&v.date===m.date);const result=await cloudRequest('submit',{record:m,requestId:cloudOperation.id,baseRevision:cloudMetadata.districts[m.district]?.meetings?.[m.date]??m.cloud?.revision??old?.cloud?.revision??0});const d=data(m.district),list=d.meetings.filter(v=>!(v.kind==='weekly-v1'&&v.date===m.date));list.push(result.record);state.districts[m.district]={...d,meetings:list,updatedAt:result.record.updatedAt};state.revision=result.revision;const meta=cloudMetadata.districts[m.district]||{meetings:{}};meta.meetings[m.date]=result.record.cloud.revision;meta.updatedAt=result.record.updatedAt;cloudMetadata.districts[m.district]=meta;cloudKeepLocal();editId=result.record.id;dirty=false;cloudOperation=null;cloudSuccess('Word 已成功上傳');showMeetingSuccess(result.record)}catch(e){toast('上傳未完成：'+e.message);cloudError=e.message}finally{cloudBusyUi(false)}}
+async function cloudSaveWholeReport(initial){
+  if(!cloudConnected||cloudBusy)return;
+  let packet=structuredClone(initial);const comparable={...packet.record};delete comparable.id;delete comparable.updatedAt;delete comparable.cloud;const fingerprint=JSON.stringify({record:comparable,change:packet.change});
+  if(!cloudOperation||cloudOperation.fingerprint!==fingerprint)cloudOperation={fingerprint,id:crypto.randomUUID()};
+  cloudBusyUi(true);
+  try{
+    for(let attempt=0;attempt<5;attempt++){
+      const result=await cloudRequest('submitBundle',{...packet,requestId:cloudOperation.id});
+      if(result.conflict){cloudBusyUi(false);const merged=await resolveReportConflict(result);if(!merged){toast('尚未送出，你的輸入仍保留。');return}packet={...merged,record:{...packet.record,...merged.record},baseRecord:result.baseRecord,baseChange:result.baseChange};cloudBusyUi(true);continue}
+      const name=result.record.district,d=data(name),list=d.meetings.filter(v=>!(v.kind==='weekly-v1'&&v.date===result.record.date));list.push(result.record);
+      state.districts[name]={...d,...result.change,meetings:list,updatedAt:result.updatedAt,countsUpdatedAt:result.record.updatedAt};state.revision=result.revision;
+      const meta=cloudMetadata.districts[name]||{meetings:{}};meta.meetings[result.record.date]=result.record.cloud.revision;meta.updatedAt=result.updatedAt;cloudMetadata.districts[name]=meta;
+      cloudKeepLocal();editId=result.record.id;dirty=false;cloudError='';cloudOperation=null;cloudSuccess('全部資料已送出，Word 已上傳');showMeetingSuccess(result.record);return;
+    }
+    toast('同地區持續有人更新，尚未送出；你的輸入仍保留，請稍後重試。');
+  }catch(e){cloudError=e.message;toast(/CONFLICT/.test(e.message)?'同地區資料已更新，尚未送出。你的輸入仍保留，請重試核對。':'全部資料尚未送出：'+e.message+'；你的輸入仍保留。')}
+  finally{cloudBusyUi(false)}
+}
+
 async function cloudPatch(change){if(!cloudConnected){toast('請先連接共用雲端再送出');return}if(cloudBusy)return;cloudBusyUi(true);try{const name=selected,result=await cloudRequest('patch',{district:name,change,baseUpdatedAt:cloudMetadata.districts[name]?.updatedAt||''});state.districts[name]={...data(name),...result.change,updatedAt:result.updatedAt};cloudMetadata.districts[name]={...(cloudMetadata.districts[name]||{meetings:{}}),updatedAt:result.updatedAt};state.revision=result.revision;cloudKeepLocal();dirty=false;cloudSuccess('已更新共用資料')}catch(e){toast('儲存失敗：'+e.message)}finally{cloudBusyUi(false)}}
 async function cloudConfirm(name,id,by){if(!cloudConnected||cloudBusy)return;cloudBusyUi(true);try{const m=data(name).meetings.find(v=>v.id===id);const result=await cloudRequest('confirm',{district:name,id,by,baseRevision:m.cloud.revision});state.districts[name]=result.district;state.revision=result.revision;dirty=false;cloudSuccess('已更新內容確認狀態')}catch(e){toast('確認失敗：'+e.message)}finally{cloudBusyUi(false)}}
 function cloudAttachmentHtml(d,type){return (d.attachments||[]).filter(v=>v.type===type).map(v=>`<article class="uploaded-file"><strong>${esc(v.name)}</strong><small>${esc(new Date(v.uploadedAt).toLocaleString('zh-TW'))}</small><p>${esc(v.description||'')}</p><span class="tag">已上傳至共用雲端</span></article>`).join('')||'<div class="empty">尚無雲端檔案。</div>'}
