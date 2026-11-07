@@ -26,3 +26,5 @@ ctx.selected='光興';const removedFieldsHtml=ctx.weeklyMeeting({meetings:[],sta
 console.log('PASS: removed attendee and personal-goal inputs stay absent while editing preserves historical values');
 
 const changyi=ctx.districtWeeklySessions(ctx.schedule.find(v=>v.name==='長億'));assert.equal(changyi.length,6);assert(changyi.every(v=>new Date(v[0]+'T12:00:00Z').getUTCDay()===3));assert.equal(changyi[0][0],'2026-11-04');assert.equal(changyi.at(-1)[0],'2026-12-09');console.log('PASS: Changyi uses exactly six Wednesdays');
+
+const historical=structuredClone(record);historical.district='光興';historical.weekly.schemaVersion=2;historical.weekly.plan=JSON.parse(JSON.stringify(ctx.weeklyPlan(ctx.schedule.find(s=>s.name==='光興'),{})));historical.weekly.plan.at(-2).date='2026-11-21';historical.weekly.plan.at(-2).venue='文化會堂';assert.throws(()=>ctx.validateWeeklyRecord(historical));ctx.validateWeeklyRecord(historical,true);historical.weekly.targets[0][0]=-1;assert.throws(()=>ctx.validateWeeklyRecord(historical,true));console.log('PASS: old schedule snapshots remain readable; new submissions require current dates and malformed historical data is still rejected');
