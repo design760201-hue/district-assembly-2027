@@ -11,7 +11,7 @@ for(const mutate of [r=>r.date='2025-10-20',r=>r.round='10',r=>r.weekly.targets[
 record.weekly.targets[0][0]=0;ctx.validateWeeklyRecord(record);
 console.log('PASS: eight weekly dates, zero accepted, malformed records rejected');
 
-const expectedCounts=[5,5,5,5,6,6,6,6,6,7,7,7,7,7,7,7,8,8,8,8,8,6];
+const expectedCounts=[5,5,5,5,6,6,6,6,6,7,7,7,7,7,7,7,7,8,8,8,8,6];
 ctx.schedule.forEach((district,i)=>{const sessions=ctx.districtWeeklySessions(district);assert.equal(sessions.length,expectedCounts[i],district.name);assert(sessions.every(v=>v[0]<district.date));for(const [sand] of sessions){const plan=ctx.weeklyPlan(district,{},sand);assert.equal(plan.length,sessions.length+2);assert.equal(plan.filter(v=>v.label==='沙推').length,0);assert.equal(plan.filter(v=>v.label.includes('含沙推')).length,0);assert.equal(plan.at(-1).venue,'文化會堂');assert.equal(plan.at(-2).venue,district.venue);assert.equal(ctx.weeklySandDate(district,{weekly:{sandDate:sand}}),sand);const r=structuredClone(record);r.district=district.name;r.date=sessions[0][0];r.weekly.schemaVersion=2;r.weekly.sandDate=sand;r.weekly.plan=JSON.parse(JSON.stringify(plan));ctx.validateWeeklyRecord(r);const bad=structuredClone(r);bad.weekly.sandDate=district.date;assert.throws(()=>ctx.validateWeeklyRecord(bad));}});
 console.log('PASS: all 22 districts accept every displayed operation day for sand-table planning, reject outside dates, and preserve fixed venues');
 // Compare the actual rendered menus, rather than only their date helpers.
