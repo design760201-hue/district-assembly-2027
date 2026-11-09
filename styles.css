@@ -66,3 +66,5 @@
 .district-navigation .tabs button{font-size:18px;font-weight:600;min-height:64px;padding:14px 22px;border-width:2px;box-shadow:0 3px 6px #194b7217}.district-navigation .tabs button svg{width:25px;height:25px}.district-navigation .tabs button.active{font-weight:700}.district-navigation .tab-arrow{height:64px}.district-navigation .tabs button:active{transform:translateY(1px);box-shadow:0 1px 3px #194b7217}@media(max-width:700px){.district-navigation .tabs button{padding:13px 17px}.district-navigation .tab-controls{gap:6px}}
 
 .review-email-copy{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}.review-email-copy input{font-size:16px}.review-email-copy .saved-note{font-size:13px;margin-top:8px}
+
+.review-content>.review-email-copy:first-child{margin:0 0 22px;padding:0 0 18px;border-top:0;border-bottom:1px solid var(--line)}
