@@ -261,17 +261,17 @@ function reportSupplement(m){if(!m.statistics||!m.preparation)return '';const st
 function meeting(d){const current=overviewCurrentData(d);const sections=weeklyMeeting(current)+counts(current)+taskForm(current);return operatingAgenda()+'<p class="notice">本頁的運營紀錄、人數統計與籌備進度會一起送出。填寫完成後，請按最下方「確認並送出全部資料」。</p>'+sections.replace(/<div class="form-footer">[\s\S]*?<\/div>(?=<\/form>)/g,match=>match.includes('cancel-edit')?'<div class="actions"><button class="btn" type="button" id="cancel-edit">取消編輯</button></div>':'')+'<section class="panel whole-report-submit" aria-label="整頁送出"><p id="whole-report-status" role="status">本頁資料尚未送出</p><p class="saved-note">一次儲存運營紀錄、人數統計與籌備進度，並產生 Word 上傳。本頁所有備註皆可留白。</p><button type="button" class="btn primary" id="submit-whole-report">確認並送出全部資料</button></section>'}
 function operatingAgenda(){
   const rows=[
-    ['勤行唱題','壯婦職務最高幹部',''],
-    ['報告程序','地區男子部長',''],
-    ['共讀《創價新聞》\n第四版【信心園地】','四部輪值',''],
-    ['傳達本次運營重點','地區男子部長',''],
-    ['各部組報告','四部地區正長 /各部組負責人',''],
-    ['議題協商','以四部地區正長中心合議',''],
-    ['本次決議報告','地區女子部長',''],
-    ['指導','壯婦職務最高幹部',''],
-    ['題目三唱','壯婦職務最高幹部','']
+    ['勤行唱題',10,'壯婦職務最高幹部',[]],
+    ['報告程序',1,'地區男子部長',[]],
+    ['共讀《創價新聞》\n第四版【信心園地】',10,'四部輪值',[]],
+    ['傳達本次運營重點',10,'地區男、女子部長',['地區友好總會企劃案\n（第一次運營報告）','總會運營注意事項\n（第一次運營報告）','報告上次待議事項']],
+    ['各部組報告',15,'四部地區正長/各部組負責人',['報告上次待議事項及目前進度']],
+    ['議題協商',30,'以四部地區正長中心合議',[]],
+    ['本次決議報告',5,'地區女子部長',[]],
+    ['指導',5,'壯婦職務最高幹部',[]],
+    ['題目三唱',1,'壯婦職務最高幹部',[]]
   ];
-  return `<section class="panel operating-agenda" aria-labelledby="operating-agenda-heading"><h2 id="operating-agenda-heading">每週地區總會運營程序一覽表</h2><p class="agenda-notice">每週實際程序，請依當週傳達程序為主</p><table class="operating-agenda-table"><thead><tr><th scope="col">序</th><th scope="col">程序</th><th scope="col">擔當者</th><th scope="col">內容</th></tr></thead><tbody>${rows.map(([program,owner],i)=>`<tr><td class="agenda-number">${i+1}</td><th scope="row" class="agenda-program">${esc(program)}</th><td class="agenda-owner"><span class="agenda-cell-label">擔當者</span>${esc(owner)}</td><td class="agenda-content">${i===3?'<span class="agenda-cell-label">內容</span><div>1.<span class="agenda-emphasis">地區友好總會企劃案<br>（第一次運營報告）</span></div><div>2.總會運營注意事項</div>':''}</td></tr>`).join('')}</tbody></table></section>`;
+  return `<section class="panel operating-agenda" aria-labelledby="operating-agenda-heading"><h2 id="operating-agenda-heading">每週地區總會運營程序一覽表</h2><p class="agenda-location">地點、時間：地區據點、晚上 <strong>19:30</strong></p><table class="operating-agenda-table"><thead><tr><th scope="col">序</th><th scope="col">程序</th><th scope="col">時間</th><th scope="col">擔當者</th><th scope="col">內容</th></tr></thead><tbody>${rows.map(([program,minutes,owner,items],i)=>`<tr><td class="agenda-number">${i+1}</td><th scope="row" class="agenda-program">${esc(program)}</th><td class="agenda-time"><span class="agenda-cell-label">時間</span>${minutes}</td><td class="agenda-owner"><span class="agenda-cell-label">擔當者</span>${esc(owner)}</td><td class="agenda-content">${items.length?'<span class="agenda-cell-label">內容</span><ol>'+items.map(item=>`<li>${esc(item)}</li>`).join('')+'</ol>':''}</td></tr>`).join('')}</tbody></table><p class="agenda-notice agenda-report-note">備註：每週運營紀錄表請地區女子部長，於每次運營會後兩日內循女子部企劃管道回傳區女子部企劃長彙整。</p></section>`;
 }
 function weeklyInput(label,name,value='',type='text',readonly=false){return `<input aria-label="${esc(label)}" name="${esc(name)}" type="${type}" ${type==='number'?'min="0" max="100000" step="1"':''} ${readonly?'readonly':''} value="${esc(value)}" maxlength="10000">`}
 function districtWeeklySessions(s){return s.name==='長億'?CHANGYI_SESSIONS:WEEKLY_SESSIONS.filter(v=>v[0]<s.date)}
