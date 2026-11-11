@@ -71,6 +71,13 @@
 .review-content>.review-email-copy:first-child{margin:0 0 22px;padding:0 0 18px;border-top:0;border-bottom:1px solid var(--line)}
 
 .summary-record-edit{font-size:18px;font-weight:700;min-height:50px;padding:10px 18px;border:2px solid #194b72;box-shadow:0 3px 7px #194b7226;white-space:nowrap}.summary-record-edit:hover{background:#194b72}.summary-record-edit:active{transform:translateY(1px);box-shadow:0 1px 3px #194b7226}@media(max-width:700px){.overview-record .overview-block-heading{align-items:flex-start;flex-wrap:wrap;gap:12px}.summary-record-edit{margin-bottom:8px}}
+
+/* Briefly draw attention to editing without moving the control or its text. */
+.summary-record-edit{position:relative;isolation:isolate;transition:background-color .15s ease,box-shadow .15s ease}
+.summary-record-edit::after{content:"";position:absolute;inset:-5px;border:2px solid #3188b6;border-radius:10px;pointer-events:none;opacity:0;animation:record-edit-attention 1.5s ease-out 3}
+@keyframes record-edit-attention{0%{opacity:0;transform:scale(.98)}25%{opacity:.7}100%{opacity:0;transform:scale(1.08,1.16)}}
+.summary-record-edit:hover::after,.summary-record-edit:focus-visible::after,.summary-record-edit:active::after{animation:none;opacity:0}
+@media(prefers-reduced-motion:reduce){.summary-record-edit{transition:none}.summary-record-edit::after{animation:none;opacity:0}}
 </style></head>
 <body><div class="shell"><aside class="sidebar"><button type="button" class="brand-home" id="brand-home" aria-label="地區友好總會，回到首頁"><span class="brand">地區友好總會</span><span class="subbrand">台中南區 · 2027 年度</span></button><nav class="nav" aria-label="主要功能"><button data-page="overview">總會總覽</button><button data-page="district">地區工作區</button><button data-page="duty">創價班執勤表</button></nav><div class="side-note"><b>異體同心 · 勇躍前進</b><p>晴爽、歡喜、無事故<br>全員出席、大勝利<br>異體同心、人才輩出</p></div></aside><main class="main"><header class="topbar"><small>邁向創立一百週年 勇躍前進之年</small><span class="local">目前瀏覽器儲存 · 尚未共用</span></header><div class="content" id="content"></div></main></div><div class="toast" id="toast" role="status" aria-live="polite" hidden></div><script>'use strict';
 let cloudDirectory={districts:{}};
