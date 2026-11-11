@@ -77,3 +77,11 @@
 @keyframes record-edit-attention{0%{opacity:0;transform:scale(.98)}25%{opacity:.7}100%{opacity:0;transform:scale(1.08,1.16)}}
 .summary-record-edit:hover::after,.summary-record-edit:focus-visible::after,.summary-record-edit:active::after{animation:none;opacity:0}
 @media(prefers-reduced-motion:reduce){.summary-record-edit{transition:none}.summary-record-edit::after{animation:none;opacity:0}}
+
+/* Start these reminders when the control actually comes into view. */
+.attention-control{position:relative;isolation:isolate}
+.attention-control::after{content:"";position:absolute;inset:-5px;border:2px solid #3188b6;border-radius:10px;box-shadow:0 3px 12px #3188b659;pointer-events:none;opacity:0;animation:control-attention-glow 1.5s ease-out 3;animation-play-state:paused}
+.attention-control.attention-visible::after{animation-play-state:running}
+@keyframes control-attention-glow{0%,100%{opacity:0}30%{opacity:.75}}
+.attention-control:hover::after,.attention-control:focus-visible::after,.attention-control:active::after,.attention-control:disabled::after{animation:none;opacity:0}
+@media(prefers-reduced-motion:reduce){.attention-control::after{animation:none;opacity:0}}
