@@ -1,6 +1,7 @@
 'use strict';
 let cloudDirectory={districts:{}};
 let cloudDuty={entries:[]};
+let cloudWomenDuty={entries:[]};
 let cloudTestMode=false,cloudEndpoint='',cloudConnected=false,cloudBusy=false,cloudError='',cloudBridge=null,cloudNonce='',cloudMetadata={districts:{}},cloudReady=null,cloudSyncAt='',cloudPollTimer=null;const cloudPending=new Map();let cloudOperation=null,cloudLoading=false;
 function cloudEnabled(){return Boolean(cloudEndpoint)}
 function cloudPanel(){if(!cloudEnabled())return '';return `<section class="cloud-panel ${cloudConnected?'connected':''}" aria-label="雲端上傳服務"><div><b>${cloudBusy?'正在上傳 Google 雲端…':cloudConnected?(cloudTestMode?'測試環境 · 已就緒':'自動上傳已就緒'):'正在連接雲端…'}</b><p>${cloudConnected?'確認送出後，自動產生 Word 並存入對應資料夾。':esc(cloudError||'正在準備上傳服務，無需輸入代碼。')}</p></div>${cloudError?'<button class="btn" id="cloud-refresh">重新連接</button>':''}</section>`}
@@ -24,10 +25,11 @@ async function cloudLoad(silent=false){
     else if(firstConnection&&result.metadata)cloudMetadata=result.metadata;
     if(result.directory)cloudDirectory=result.directory;
     if(result.duty)cloudDuty=result.duty;
+    if(result.womenDuty)cloudWomenDuty=result.womenDuty;
     cloudConnected=true;cloudError='';
     if(preserve){if(firstConnection){bindCloud();bindSubmissionReview()}else{const label=document.querySelector('.topbar .local');if(label)label.textContent='Google 雲端自動上傳'}return}
     dirty=false;
-    if(page==='duty'&&$('#duty-results'))renderDutyResults();else render();
+    if(['duty','women-duty'].includes(page)&&$('#duty-results'))renderDutyResults();else render();
   }catch(e){
     cloudError=e.message;
     if(!silent&&!cloudPreserveInput()){cloudConnected=false;render()}

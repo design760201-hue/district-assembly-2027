@@ -85,3 +85,16 @@
 @keyframes control-attention-glow{0%,100%{opacity:0}30%{opacity:.75}}
 .attention-control:hover::after,.attention-control:focus-visible::after,.attention-control:active::after,.attention-control:disabled::after{animation:none;opacity:0}
 @media(prefers-reduced-motion:reduce){.attention-control::after{animation:none;opacity:0}}
+
+/* Women's service uses the same roster layout with a distinct rose palette. */
+.nav button[data-page="women-duty"]{background:#fff0f6;color:#8d2857}
+.nav button[data-page="women-duty"]:hover,.nav button[data-page="women-duty"].active{background:#f6cee0;color:#762046;font-weight:700}
+.women-duty{--blue:#a12c63;--pale:#fff0f6;--line:#efc9d9}
+.women-duty h1,.women-duty .duty-day h2,.women-duty .duty-place h3{color:#8d2857}
+.women-duty .duty-entry{border-color:#efc9d9;background:#fffafd}
+.women-duty .duty-name{background:#fce6ef;color:#762046}
+.women-duty .duty-name.is-match{background:#f4bdd4;color:#621b3c}
+.women-duty .duty-tools,.women-duty .review-heading{background:#fff0f6}
+.women-duty .duty-calendar-actions .btn{border-color:#d98bad;color:#8d2857;background:#fff0f6}
+.women-duty .duty-calendar-actions .btn:hover{background:#f7d6e5}
+.women-duty input:focus,.women-duty select:focus{outline-color:#a12c63}
