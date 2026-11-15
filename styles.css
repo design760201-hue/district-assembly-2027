@@ -98,3 +98,10 @@
 .women-duty .duty-calendar-actions .btn{border-color:#d98bad;color:#8d2857;background:#fff0f6}
 .women-duty .duty-calendar-actions .btn:hover{background:#f7d6e5}
 .women-duty input:focus,.women-duty select:focus{outline-color:#a12c63}
+
+/* Pending arrangements share one visible status across every district. */
+:root{--confirmation-bg:#fff3d6;--confirmation-ink:#754400;--confirmation-line:#d6a33e}
+.report-record-content>div.needs-confirmation{background:var(--confirmation-bg);color:var(--confirmation-ink);padding:12px;border:1px solid var(--confirmation-line);margin-block:6px;border-radius:6px}
+.overview-staff-table tr.needs-confirmation>th,.overview-staff-table tr.needs-confirmation>td{background:var(--confirmation-bg);color:var(--confirmation-ink);border-bottom-color:var(--confirmation-line)}
+.confirmation-badge{display:inline-block;vertical-align:baseline;margin-inline-end:8px;padding:2px 7px;border:1px solid var(--confirmation-line);border-radius:4px;font-size:12px;font-weight:700;line-height:1.5;color:var(--confirmation-ink);background:var(--confirmation-bg);white-space:nowrap}
+@media print{.needs-confirmation,.confirmation-badge{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
