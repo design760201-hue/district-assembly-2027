@@ -105,3 +105,6 @@
 .overview-staff-table tr.needs-confirmation>th,.overview-staff-table tr.needs-confirmation>td{background:var(--confirmation-bg);color:var(--confirmation-ink);border-bottom-color:var(--confirmation-line)}
 .confirmation-badge{display:inline-block;vertical-align:baseline;margin-inline-end:8px;padding:2px 7px;border:1px solid var(--confirmation-line);border-radius:4px;font-size:12px;font-weight:700;line-height:1.5;color:var(--confirmation-ink);background:var(--confirmation-bg);white-space:nowrap}
 @media print{.needs-confirmation,.confirmation-badge{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+
+form input.needs-confirmation,form textarea.needs-confirmation,form select.needs-confirmation{background:var(--confirmation-bg);color:var(--confirmation-ink);border-color:var(--confirmation-line);font-weight:600}
+form input.needs-confirmation:focus,form textarea.needs-confirmation:focus,form select.needs-confirmation:focus{outline:2px solid var(--confirmation-ink);outline-offset:2px}
