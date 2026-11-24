@@ -108,3 +108,16 @@
 
 form input.needs-confirmation,form textarea.needs-confirmation,form select.needs-confirmation{background:var(--confirmation-bg);color:var(--confirmation-ink);border-color:var(--confirmation-line);font-weight:600}
 form input.needs-confirmation:focus,form textarea.needs-confirmation:focus,form select.needs-confirmation:focus{outline:2px solid var(--confirmation-ink);outline-offset:2px}
+.district-navigation .tabs button.sandplay-nav{background:#ad4b10;color:#fff;border-color:#963b08;position:relative}
+.district-navigation .tabs button.sandplay-nav.active{background:#943907;border-color:#7c2e05}
+.district-navigation .tabs button.sandplay-nav:hover{background:#943907;color:#fff}
+.sandplay-nav.attention-control::after{border-color:#dc8a34;box-shadow:0 3px 12px #cf792d66}
+.sandplay-download{max-width:940px}.sandplay-download h2{margin-top:0}.sandplay-description{margin-bottom:24px}
+.sandplay-facts{margin:0 0 28px;display:grid;gap:12px}.sandplay-facts>div{display:grid;grid-template-columns:100px 1fr;gap:12px}.sandplay-facts dt{color:var(--muted)}.sandplay-facts dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+.sandplay-download-button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:58px;padding:14px 24px;background:#ad4b10;border:2px solid #963b08;color:#fff;font-size:18px;font-weight:700;box-shadow:0 3px 7px #77340524;transition:background .18s ease,transform .18s ease}
+.sandplay-download-button svg{width:24px;height:24px;flex:none}.sandplay-download-button:hover:not(:disabled){background:#943907}.sandplay-download-button:active:not(:disabled){transform:translateY(1px)}.sandplay-download-button:disabled{opacity:1;color:#fff;background:#85644c;border-color:#85644c;cursor:wait}
+#sandplay-download-status{min-height:28px;margin:12px 0 26px}.sandplay-notes{border-top:1px solid var(--line);padding-top:16px;color:var(--muted);max-width:70ch}.sandplay-notes p{margin:0 0 12px}
+@media(max-width:700px){.sandplay-download-button{width:100%;padding:14px 12px;font-size:17px}.sandplay-facts>div{grid-template-columns:1fr;gap:3px}.sandplay-download{padding:22px 18px}.sandplay-description{margin-bottom:20px}}
+@media(prefers-reduced-motion:reduce){.sandplay-nav::after{animation:none!important}.sandplay-download-button{transition:none}.sandplay-download-button:active:not(:disabled){transform:none}}
+.district-navigation .tabs button.sandplay-nav:focus-visible{outline-color:#703209}
+@media(max-width:700px){.district-navigation .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;gap:8px}.district-navigation .tabs button{min-width:0;white-space:normal;justify-content:center;padding:12px 8px;font-size:16px}.district-navigation .tabs button svg{width:22px;height:22px}.district-navigation .tab-arrow{display:none}.district-navigation .tab-guide small{max-width:none}.district-navigation .tab-controls{display:block}}

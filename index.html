@@ -109,6 +109,19 @@
 
 form input.needs-confirmation,form textarea.needs-confirmation,form select.needs-confirmation{background:var(--confirmation-bg);color:var(--confirmation-ink);border-color:var(--confirmation-line);font-weight:600}
 form input.needs-confirmation:focus,form textarea.needs-confirmation:focus,form select.needs-confirmation:focus{outline:2px solid var(--confirmation-ink);outline-offset:2px}
+.district-navigation .tabs button.sandplay-nav{background:#ad4b10;color:#fff;border-color:#963b08;position:relative}
+.district-navigation .tabs button.sandplay-nav.active{background:#943907;border-color:#7c2e05}
+.district-navigation .tabs button.sandplay-nav:hover{background:#943907;color:#fff}
+.sandplay-nav.attention-control::after{border-color:#dc8a34;box-shadow:0 3px 12px #cf792d66}
+.sandplay-download{max-width:940px}.sandplay-download h2{margin-top:0}.sandplay-description{margin-bottom:24px}
+.sandplay-facts{margin:0 0 28px;display:grid;gap:12px}.sandplay-facts>div{display:grid;grid-template-columns:100px 1fr;gap:12px}.sandplay-facts dt{color:var(--muted)}.sandplay-facts dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+.sandplay-download-button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:58px;padding:14px 24px;background:#ad4b10;border:2px solid #963b08;color:#fff;font-size:18px;font-weight:700;box-shadow:0 3px 7px #77340524;transition:background .18s ease,transform .18s ease}
+.sandplay-download-button svg{width:24px;height:24px;flex:none}.sandplay-download-button:hover:not(:disabled){background:#943907}.sandplay-download-button:active:not(:disabled){transform:translateY(1px)}.sandplay-download-button:disabled{opacity:1;color:#fff;background:#85644c;border-color:#85644c;cursor:wait}
+#sandplay-download-status{min-height:28px;margin:12px 0 26px}.sandplay-notes{border-top:1px solid var(--line);padding-top:16px;color:var(--muted);max-width:70ch}.sandplay-notes p{margin:0 0 12px}
+@media(max-width:700px){.sandplay-download-button{width:100%;padding:14px 12px;font-size:17px}.sandplay-facts>div{grid-template-columns:1fr;gap:3px}.sandplay-download{padding:22px 18px}.sandplay-description{margin-bottom:20px}}
+@media(prefers-reduced-motion:reduce){.sandplay-nav::after{animation:none!important}.sandplay-download-button{transition:none}.sandplay-download-button:active:not(:disabled){transform:none}}
+.district-navigation .tabs button.sandplay-nav:focus-visible{outline-color:#703209}
+@media(max-width:700px){.district-navigation .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;gap:8px}.district-navigation .tabs button{min-width:0;white-space:normal;justify-content:center;padding:12px 8px;font-size:16px}.district-navigation .tabs button svg{width:22px;height:22px}.district-navigation .tab-arrow{display:none}.district-navigation .tab-guide small{max-width:none}.district-navigation .tab-controls{display:block}}
 </style></head>
 <body><div class="shell"><aside class="sidebar"><button type="button" class="brand-home" id="brand-home" aria-label="地區友好總會，回到首頁"><span class="brand">地區友好總會</span><span class="subbrand">台中南區 · 2027 年度</span></button><nav class="nav" aria-label="主要功能"><button data-page="overview">總會總覽</button><button data-page="district">地區工作區</button><button data-page="duty">創價班執勤表</button><button data-page="women-duty">女子部服務執勤表</button></nav><div class="side-note"><b>異體同心 · 勇躍前進</b><p>晴爽、歡喜、無事故<br>全員出席、大勝利<br>異體同心、人才輩出</p></div></aside><main class="main"><header class="topbar"><small>邁向創立一百週年 勇躍前進之年</small><span class="local">目前瀏覽器儲存 · 尚未共用</span></header><div class="content" id="content"></div></main></div><div class="toast" id="toast" role="status" aria-live="polite" hidden></div><script>'use strict';
 let cloudDirectory={districts:{}};
@@ -192,6 +205,229 @@ function cloudBackup(){return `<h1>備份與匯出</h1><section class="panel"><h
 
 function cloudKeepLocal(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch{}}
 
+/* Formal sandplay PDF: local, read-only rendering of the supplied three time-slot grids. */
+(function (root) {
+  'use strict';
+  const clean = value => String(value ?? '').trim();
+  const pending = value => !clean(value) || /待確認|待確|暫定|待討論|待定|未填寫|未確認|協議安排|依.*確認/.test(clean(value));
+  const person = value => clean(value) || '待確認';
+  const unique = values => [...new Set(values.map(clean).filter(Boolean))].join('、');
+  function slot(time) {
+    const known = {'09:30': ['morning', '早上場'], '14:00': ['afternoon', '下午場'], '19:50': ['evening', '晚上場']};
+    if (!known[time]) throw Error('本場次時間尚無對應範本，請聯絡管理幹部確認。');
+    return {key: known[time][0], label: known[time][1]};
+  }
+  function model(schedule, current, latest, directory, duty, womenDuty, readAt) {
+    const staff = current.staff || {}, roster = directory?.districts?.[schedule.name] || {};
+    const program = latest?.weekly?.program || [];
+    // Respect the same precedence as the district overview, including a newer staff edit.
+    const weeklyWins = latest && (latest.updatedAt || '') > (current.staffUpdatedAt || '');
+    const programPerson = (role, index, ...keys) => {
+      const entry = program.find(v => v.role === role) || program[index];
+      if (weeklyWins && entry) return person(entry.person);
+      return person(keys.map(k => staff[k]).find(v => clean(v)));
+    };
+    const service = entries => (entries || []).find(v => v.district === schedule.name);
+    const people = {
+      control: person(staff['場控']), cue: person(staff['催場']), sound: person(staff['金城會音效']),
+      computer: person(staff['電腦播放'] || staff['筆電音控']),
+      women: person(service(womenDuty?.entries)?.leader || staff['頒贈禮物引導']),
+      soka: person(service(duty?.entries)?.leader || staff['創價班負責人']),
+      general: unique([staff['報到處負責人'] && '報到：' + staff['報到處負責人'], staff['庶務負責人'] && '庶務：' + staff['庶務負責人'], staff['場務負責人（壯）'] && '場務：' + staff['場務負責人（壯）']]) || '待確認',
+      service: person(staff['服務組負責人']), beauty: person(staff['美化負責人']),
+      stage: person(staff['場務負責人（壯）']), transport: person(staff['輸送負責人']),
+      host: programPerson('司儀', 0, '程序司儀') === '待確認' ? person(unique([staff['司儀（男）'],staff['司儀（女）']])) : programPerson('司儀', 0, '程序司儀'),
+      welcome: weeklyWins ? programPerson('致歡迎詞', 1, '地區部長', '致歡迎詞') : person(staff['致歡迎詞'] || unique([staff['地區部長'],staff['地區婦人部長']])),
+      future: person(staff['未來部負責人']), gifts: person(staff['頒贈禮物引導']),
+      spotlight: person(staff['地區聚光燈負責人']), guidance: person(roster.guidance || staff['指導幹部']),
+      awarder: person(staff['頒獎前輩'] || staff['頒贈禮物前輩']),
+      photo: person(staff['攝影人員']), farewell: programPerson('歡迎、歡送式', 5, '歡迎、歡送式'),
+      happiness: '待定稿（暫不帶入提報人選）'
+    };
+    const columns = {9: 'control', 10: 'cue', 12: 'sound', 13: 'computer', 14: 'women', 15: 'soka', 16: 'general', 17: 'service', 18: 'beauty', 19: 'stage', 20: 'transport'};
+    return {schedule: {...schedule}, slot: slot(schedule.time), people, columns, readAt: readAt || new Date().toISOString(), sourceDate: latest?.date || '', pending: Object.entries(people).filter(([,v]) => pending(v)).map(([k]) => k)};
+  }
+  function cellText(cell, m) {
+    if (cell.col === 1 && cell.row >= 6) { const order = [6,7,8,9,11,13,15,17,19,21,22,24,26,28,30,32].indexOf(cell.row); if (order >= 0) return String(order+1); }
+    if (cell.row === 5 && m.columns[cell.col]) return m.people[m.columns[cell.col]];
+    let text = cell.text;
+    const p = m.people;
+    if (cell.col === 6) {
+      const role = {11: p.host, 13: p.future, 15: p.welcome, 17: p.gifts, 21: p.spotlight, 22: p.happiness, 24: p.guidance, 28: p.photo, 30: p.farewell}[cell.row];
+      if (role) text = text.replace(/\s+V$/, '') + '\n' + role;
+    }
+    return text
+      .replace(/指導前輩\(職稱[+＋]姓名\)/g, '指導前輩（' + p.guidance + '）')
+      .replace(/前輩\(職稱[+＋]姓名\)/g, '前輩（' + p.awarder + '）')
+      .replace(/地區聚光燈\(擔當者\)/g, '地區聚光燈（' + p.spotlight + '）')
+      .replace(/地區壯婦部長/g, '致歡迎詞擔當（' + p.welcome + '）')
+      .replace(/地區部長&地區婦人部長/g, '致歡迎詞擔當（' + p.welcome + '）')
+      .replace(/體驗擔當人員_+/g, '體驗擔當人員（待定稿）')
+      .replace(/攝影人員準備/g, '攝影人員（' + p.photo + '）準備')
+      .replace(/_+組/g, '待確認組').replace(/_+/g, '待確認')
+      .replace(/[ \t]{2,}/g, ' ').trim();
+  }
+  function wrap(text, width, size, font, cache) {
+    const result = [];
+    for (const paragraph of String(text).split('\n')) {
+      let line = '', length = 0;
+      for (const char of Array.from(paragraph)) {
+        if (!cache.has(char)) cache.set(char, font.widthOfTextAtSize(char, 1));
+        const next = cache.get(char) * size;
+        if (line && length + next > width) {result.push(line); line = ''; length = 0;}
+        line += char; length += next;
+      }
+      result.push(line);
+    }
+    return result;
+  }
+  async function createPdf(m, grids, fontBytes, PDFLib, fontkit) {
+    const {PDFDocument, rgb} = PDFLib;
+    const pdf = await PDFDocument.create();
+    pdf.registerFontkit(fontkit);
+    const font = await pdf.embedFont(fontBytes, {subset: true});
+    const glyphs = new Set(font.getCharacterSet());
+    const grid = grids[m.slot.key];
+    if (!grid?.cells?.length) throw Error('沙推表範本不完整，請重新下載。');
+    const texts = grid.cells.map(c => cellText(c, m));
+    const date = m.schedule.date.replaceAll('-', '/'), rehearse = m.schedule.rehearsal.replaceAll('-', '/');
+    const subtitle = '正式：' + date + ' ' + m.schedule.time + ' 文化會堂　／　彩排：' + rehearse + ' ' + m.schedule.rehearsalTime + ' ' + m.schedule.venue;
+    const stamp = new Date(m.readAt).toLocaleString('zh-TW', {timeZone: 'Asia/Taipei', hour12: false});
+    const heading = '2027 ' + m.schedule.name + '地區友好總會｜正式沙推表・' + m.slot.label;
+    const footer = '姓名依網站已儲存分工與執勤表套入；待確認項目請於現場確認。幸福1+1人選待定稿。';
+    for (const c of Array.from(texts.join('') + subtitle + heading + footer + stamp + '正面背面資料讀取第頁0123456789 / A3 橫式雙面短邊翻頁')) {
+      if (c.codePointAt(0) > 31 && !glyphs.has(c.codePointAt(0))) throw Error('字型尚未支援姓名中的「' + c + '」，請聯絡管理幹部協助。');
+    }
+    const width = 1190.551181, height = 841.889764, margin = 14.173228;
+    const base = [18,34,8,34,28,8,62,18,80,24,58,90,94,75,90,65,75,65,55,76];
+    const ratio = (width - margin * 2) / base.reduce((a,b) => a+b, 0);
+    const widths = base.map(v => v * ratio), xs = [margin]; widths.forEach(v => xs.push(xs.at(-1) + v));
+    const pages = [Array.from({length: 17}, (_,i) => i+4), [4,5,...Array.from({length: 13}, (_,i) => i+21)]];
+    const cache = new Map(); let minimumFontSize = Infinity;
+    for (let n = 0; n < pages.length; n++) {
+      const rows = pages[n], cells = grid.cells.filter(c => rows.includes(c.row));
+      let size = 8.6, layout;
+      for (; size >= 7.2; size -= .2) {
+        const heights = Object.fromEntries(rows.map(r => [r, r <= 5 ? 25 : 19]));
+        const fitted = cells.map(c => {
+          const text = cellText(c,m), w = widths.slice(c.col-1,c.col-1+c.colspan).reduce((a,b) => a+b,0);
+          const lines = wrap(text, w-7, size, font, cache);
+          return {...c, text, lines, w, need: lines.length * size * 1.34 + 8};
+        });
+        // Grow short rows first, then merged spans, keeping every instruction intact.
+        fitted.sort((a,b) => a.rowspan-b.rowspan).forEach(c => {
+          const span = rows.filter(r => r >= c.row && r < c.row+c.rowspan);
+          const have = span.reduce((sum,r) => sum+heights[r],0);
+          if (c.need > have) span.forEach(r => heights[r] += (c.need-have)/span.length);
+        });
+        const total = Object.values(heights).reduce((a,b) => a+b,0), available = height-margin-78;
+        if (total <= available) {
+          const surplus = (available-total)/(rows.length-2);
+          rows.filter(r => r>5).forEach(r => heights[r] += surplus);
+          layout = {heights, fitted}; break;
+        }
+      }
+      if (!layout) throw Error('部分填寫內容過長，兩頁 A3 無法清楚容納，請縮短人員欄位的說明後再下載。');
+      minimumFontSize = Math.min(minimumFontSize,size);
+      const page = pdf.addPage([width,height]);
+      page.drawText(heading, {x: margin, y: height-29, size: 17, font});
+      page.drawText((n ? '背面' : '正面') + '　' + (n+1) + ' / 2', {x: width-110, y: height-28, size: 11, font});
+      page.drawText(subtitle, {x: margin, y: height-47, size: 10, font});
+      page.drawText('資料讀取：' + stamp + (m.sourceDate ? '　最近運營紀錄：' + m.sourceDate : '') + '　｜　A3 橫式・雙面短邊翻頁', {x: margin, y: height-63, size: 8.4, font});
+      const tops = {}; let y = height-73; rows.forEach(r => {tops[r]=y; y-=layout.heights[r];});
+      for (const c of layout.fitted) {
+        const h = rows.filter(r => r>=c.row && r<c.row+c.rowspan).reduce((sum,r) => sum+layout.heights[r],0);
+        const x = xs[c.col-1], bottom = tops[c.row]-h;
+        const fill = c.row <= 5 ? rgb(.91,.92,.93) : pending(c.text) ? rgb(1,.98,.91) : rgb(1,1,1);
+        page.drawRectangle({x, y: bottom, width: c.w, height: h, color: fill, borderWidth: .45, borderColor: rgb(.22,.22,.22)});
+        const centered = c.row<=5 || c.col<=8;
+        let lineY = centered ? bottom+(h+c.lines.length*size*1.34)/2-size : tops[c.row]-5-size;
+        for (const line of c.lines) {
+          const lineWidth = font.widthOfTextAtSize(line,size);
+          page.drawText(line, {x: centered ? x+(c.w-lineWidth)/2 : x+3.5, y: lineY, size, font, color: rgb(.06,.06,.06)});
+          lineY -= size*1.34;
+        }
+      }
+      page.drawText(footer, {x: margin, y: 8, size: 7.2, font, color: rgb(.3,.3,.3)});
+    }
+    pdf.setTitle(m.schedule.name+'地區正式沙推表 - '+m.slot.label);
+    pdf.setSubject('A3 橫式，兩頁，雙面短邊翻頁');
+    pdf.setAuthor('台中南區地區友好總會');
+    // Request actual-size, correct tray and landscape duplex. Printer support still governs printing.
+    const preferences = pdf.catalog.getOrCreateViewerPreferences();
+    preferences.setPrintScaling(PDFLib.PrintScaling.None);
+    preferences.setDuplex(PDFLib.Duplex.DuplexFlipShortEdge);
+    preferences.setPickTrayByPDFSize(true);
+    return {bytes: await pdf.save(), minimumFontSize, filename: m.schedule.name+'地區-'+m.schedule.date+'-'+m.slot.label+'-正式沙推表-A3雙面.pdf'};
+  }
+  root.AssemblySandplay = {slot, model, cellText, createPdf};
+})(typeof window === 'undefined' ? globalThis : window);
+
+let sandplayAssetsPromise = null, sandplayExportBusy = false;
+function sandplayDownloadPage(s) {
+  const slot = AssemblySandplay.slot(s.time);
+  return `<section class="panel sandplay-download" aria-labelledby="sandplay-heading"><h2 id="sandplay-heading">正式沙推表下載</h2><p class="sandplay-description">${esc(s.name)}地區的${esc(slot.label)}沙推表，依已儲存的人員安排自動套入。</p><dl class="sandplay-facts"><div><dt>正式總會</dt><dd>${esc(dateLabel(s.date))} ${esc(s.time)} · 文化會堂</dd></div><div><dt>下載格式</dt><dd>PDF · A3 橫式 · 正反兩頁</dd></div></dl><button type="button" class="btn sandplay-download-button" id="download-sandplay" ${cloudEnabled()&&!cloudConnected?'disabled':''}>${tabIcon('M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5')}<span>下載${esc(s.name)}地區正式沙推表</span></button><p id="sandplay-download-status" class="saved-note" role="status" aria-live="polite">${cloudEnabled()&&!cloudConnected?'正在連接共用資料，連接完成後即可下載。':'點選後會重新讀取已儲存資料，再產生 PDF。'}</p><div class="sandplay-notes"><p>表頭帶入各工作組負責人，程序內文帶入對應擔當者；未確認的人員以「待確認」標示。幸福1+1 人選待定稿，暫不帶入提報名單。</p><p>列印版面已排好。使用 A3 紙張、雙面短邊翻頁；PDF 也已設定對應列印偏好，實際套用依印表機支援。</p></div></section>`;
+}
+function sandplayLoadScript(src, check) {
+  if (check()) return Promise.resolve();
+  return new Promise((resolve,reject) => {
+    const script=document.createElement('script');script.src=src;script.async=true;
+    const timer=setTimeout(()=>{script.remove();reject(Error('PDF 元件讀取逾時，請確認網路後重試。'))},30000);
+    script.onload=()=>{clearTimeout(timer);check()?resolve():reject(Error('PDF 元件載入不完整，請重新整理後重試。'))};
+    script.onerror=()=>{clearTimeout(timer);script.remove();reject(Error('無法讀取 PDF 元件，請確認網路後重試。'))};
+    document.head.append(script);
+  });
+}
+async function sandplayAssets() {
+  if (!sandplayAssetsPromise) sandplayAssetsPromise=(async()=>{
+    const read=async(url,type)=>{const response=await fetch(url,{signal:AbortSignal.timeout(45000)});if(!response.ok)throw Error('PDF 範本或字型無法讀取，請稍後重試。');return type==='json'?response.json():response.arrayBuffer()};
+    const [grids,fontBytes]=await Promise.all([
+      read('assets/sandplay-grid.json','json'),read('assets/NotoSansTC-Regular.ttf','bytes'),
+      sandplayLoadScript('assets/vendor/pdf-lib-1.17.1.min.js',()=>Boolean(window.PDFLib)),
+      sandplayLoadScript('assets/vendor/fontkit-1.1.1.min.js',()=>Boolean(window.fontkit))
+    ]);
+    return {grids,fontBytes};
+  })().catch(error=>{sandplayAssetsPromise=null;throw error});
+  return sandplayAssetsPromise;
+}
+function bindSandplayDownload() {
+  const button=$('#download-sandplay');if(!button)return;
+  button.onclick=async()=>{
+    if(sandplayExportBusy)return;
+    const name=selected,schedule=SCHEDULE.find(s=>s.name===name),status=$('#sandplay-download-status');
+    const label=button.querySelector('span');sandplayExportBusy=true;button.disabled=true;button.setAttribute('aria-busy','true');label.textContent='正在產生 PDF…';
+    status.textContent='正在讀取已儲存的人員資料與沙推表範本…';
+    try {
+      const assetsPromise=sandplayAssets();assetsPromise.catch(()=>{});
+      let raw=data(name),directory=cloudDirectory,duty=cloudDuty,womenDuty=cloudWomenDuty;
+      if(cloudEnabled()) {
+        // Read the current shared state without applying it to or rerendering an open form.
+        const result=await cloudRequest('load');
+        if(!result.state?.districts)throw Error('無法取得共用人員資料，請重新連接雲端後重試。');
+        if(result.directory?.error)throw Error('總結幹部資料暫時無法讀取，請稍後重試。');
+        if(result.duty?.error||result.womenDuty?.error)throw Error('執勤人員資料暫時無法讀取，請稍後重試。');
+        raw=result.state.districts[name]||{meetings:[],staff:{},counts:{},tasks:{}};
+        directory=result.directory||{districts:{}};duty=result.duty||{entries:[]};womenDuty=result.womenDuty||{entries:[]};
+      }
+      const latest=latestWeeklyMeeting(raw),current=overviewCurrentData(raw,latest);
+      const model=AssemblySandplay.model(schedule,current,latest,directory,duty,womenDuty,new Date().toISOString());
+      const assets=await assetsPromise;
+      status.textContent='正在排版 A3 正反兩頁，請稍候…';
+      const result=await AssemblySandplay.createPdf(model,assets.grids,assets.fontBytes,window.PDFLib,window.fontkit);
+      const url=URL.createObjectURL(new Blob([result.bytes],{type:'application/pdf'}));
+      const link=document.createElement('a');link.href=url;link.download=result.filename;document.body.append(link);link.click();link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+      status.textContent=`${name}地區${model.slot.label} PDF 已產生，共兩頁。下載後請確認標示「待確認」的人員。`;
+      toast('正式沙推表 PDF 已產生');
+    } catch(error) {
+      status.textContent='下載未完成：'+error.message+' 請再按一次下載重試。';
+      toast('無法下載沙推表，請查看下方說明後重試。');
+    } finally {
+      sandplayExportBusy=false;button.disabled=false;button.removeAttribute('aria-busy');label.textContent='下載'+name+'地區正式沙推表';
+    }
+  };
+}
+
 'use strict';
 const SCHEDULE=[["光興","12-03","19:50","11-23","19:50","講堂一","坪林"],["德芳","12-04","19:50","11-26","19:50","講堂一","永興"],["宜昌","12-05","19:50","11-26","19:50","文化會堂","光興"],["烏日","12-06","14:00","11-26","19:50","講堂二","和平"],["坪林","12-12","09:30","12-05","09:30","講堂一","宜昌"],["樹義","12-12","14:00","12-05","09:30","講堂二","烏日"],["內新","12-12","19:50","12-05","14:00","講堂一","德芳"],["明道","12-13","09:30","12-05","14:00","講堂二","樹義"],["永興","12-13","14:00","12-05","19:50","講堂二","內新"],["和平","12-17","19:50","12-12","09:30","講堂一","明道"],["霧峰","12-18","19:50","12-12","09:30","講堂二","萬豐"],["成功","12-19","09:30","12-12","14:00","講堂一","十九甲"],["建成","12-19","14:00","12-12","14:00","講堂二","健康"],["喀哩","12-19","19:50","12-12","19:50","講堂一","霧峰"],["塗城","12-20","09:30","12-12","19:50","講堂二","成功"],["大東","12-20","14:00","12-13","09:30","講堂二","建成"],["新坪","12-21","19:50","12-17","19:50","講堂一","長億"],["十九甲","12-22","19:50","12-17","19:50","講堂二","塗城"],["樂業","12-23","19:50","12-18","19:50","講堂二","新坪"],["萬豐","12-26","09:30","12-19","09:30","講堂二","喀哩"],["健康","12-27","09:30","12-20","09:30","講堂二","大東"],["長億","12-27","14:00","12-20","09:30","講堂一","樂業"]].map(([name,date,time,rehearsal,rehearsalTime,venue,support])=>({name,date:'2026-'+date,time,rehearsal:'2026-'+rehearsal,rehearsalTime,venue,support}));
 const KEY='district-assembly-2027-v1';
@@ -243,7 +479,7 @@ function bindAttentionControls(){
  if(typeof IntersectionObserver==='undefined')return;
  if(attentionObserver)attentionObserver.disconnect();
  attentionObserver=new IntersectionObserver(entries=>entries.forEach(entry=>entry.target.classList.toggle('attention-visible',entry.isIntersecting)),{threshold:.5});
- document.querySelectorAll('.other-districts>summary,.district-card [data-open],#submit-whole-report').forEach(el=>{el.classList.add('attention-control');attentionObserver.observe(el)});
+ document.querySelectorAll('.other-districts>summary,.district-card [data-open],#submit-whole-report,.sandplay-nav').forEach(el=>{el.classList.add('attention-control');attentionObserver.observe(el)});
 }
 function render(){if(!['overview','district','duty','women-duty'].includes(page))page='overview';if(!districtTabs().some(([key])=>key===tab))tab='summary';document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));const body=page==='overview'?overview():['duty','women-duty'].includes(page)?dutyPage():district();$('#content').classList.toggle('women-duty',page==='women-duty');$('#content').innerHTML=(page==='district'?cloudPanel():'')+cloudCopy((loadError?`<div role="alert" class="notice">${esc(loadError)}</div>`:'')+body);bind();bindDuty();bindWeeklyMeeting();bindOperationalForms();bindCloud();bindSubmissionReview();bindWholeReport();bindConfirmationInputs()}
 
@@ -330,13 +566,13 @@ function searchStaff(){const q=normalizeName(staffQuery),target=$('#staff-search
 function districtCard(s){const d=overviewCurrentData(data(s.name)),c=completion(d),[label,cls]=activityStatus(s),isPinned=pinned.includes(s.name);return `<article class="district-card ${isPinned?'pinned-card':''}"><div class="district-title"><h3>${s.name}地區</h3><div class="card-controls"><span class="tag ${cls}">${label}</span><button class="pin-button ${isPinned?'is-pinned':''}" data-pin="${s.name}" aria-label="${isPinned?'取消釘選':'釘選'}${s.name}地區" aria-pressed="${isPinned}"><span aria-hidden="true">${isPinned?'★':'☆'}</span> ${isPinned?'已釘選':'釘選'}</button></div></div><div class="dates"><div><small>正式總會</small><b>${dateLabel(s.date)}</b><p>${s.time} · 距活動 ${days(s.date)} 天</p></div><div><small>彩排</small><b>${dateLabel(s.rehearsal)}</b><p>${s.rehearsalTime} · ${s.venue}</p></div></div>${timeline(s)}<div class="card-bottom"><span>籌備 ${c.done}/${c.total} 項 · 紀錄 ${d.meetings.length} 份</span><button class="btn" data-open="${s.name}" data-tab="summary">進入工作區 →</button></div></article>`}
 function cards(){const arr=SCHEDULE.filter(s=>s.name.includes(query)&& (filter==='all'||filter==='upcoming'&&Date.now()<timeMs(s.date,s.time)||filter==='rehearsed'&&Date.now()>=timeMs(s.rehearsal,s.rehearsalTime)&&Date.now()<timeMs(s.date,s.time)||filter==='ended'&&Date.now()>=timeMs(s.date,s.time)));const favorites=arr.filter(s=>pinned.includes(s.name)),others=arr.filter(s=>!pinned.includes(s.name));const searching=query.trim()!==''||filter!=='all';$('#result-count').textContent=arr.length+' 個地區';$('#cards').innerHTML=`<section aria-labelledby="pinned-title"><div class="pin-section-heading"><h3 id="pinned-title">我的釘選 <span class="muted">${favorites.length}</span></h3><small class="muted">個人釘選 · 僅保存在此瀏覽器</small></div><div class="district-grid" id="pinned-cards">${favorites.length?favorites.map(districtCard).join(''):`<div class="empty wide">${pinned.length?'沒有符合目前篩選的釘選地區。':'尚未釘選地區。點選下方「選擇你的地區」，按卡片上的「釘選」，即可固定顯示。'}</div>`}</div></section><details class="other-districts" id="other-districts" ${otherDistrictsOpen||searching?'open':''}><summary><span>選擇你的地區 <span class="other-count">${others.length}</span></span><span class="collapse-hint">展開／收合</span></summary><div class="district-grid" id="other-cards">${others.length?others.map(districtCard).join(''):'<div class="empty wide">沒有其他符合條件的地區。</div>'}</div></details>`;$('#other-districts').ontoggle=e=>{if(!searching)otherDistrictsOpen=e.target.open};document.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>{const focusName=b.dataset.pin;togglePin(focusName);const moved=document.querySelector(`[data-pin="${focusName}"]`);if(moved&&(!moved.closest('details')||moved.closest('details').open))moved.focus();else $('#other-districts summary').focus()});bindOpens()}
 
-const DISTRICT_TABS=[['summary','地區總覽','M3 10l9-7 9 7v10H3z M9 20v-7h6v7'],['meeting','會議紀錄','M6 3h12v18H6z M9 8h6 M9 12h6 M9 16h4'],['staff','工作分工','M9 7a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M5 21v-3a7 7 0 0 1 14 0v3'],['counts','人數統計','M5 20V12 M12 20V4 M19 20V8 M3 20h18'],['tasks','籌備進度','M9 6h12 M9 12h12 M9 18h12 M3 6l1 1 2-2 M3 12l1 1 2-2 M3 18l1 1 2-2'],['uploads','幸福1+1稿件與PPT','M12 16V3 M7 8l5-5 5 5 M4 15v6h16v-6']];
+const DISTRICT_TABS=[['summary','地區總覽','M3 10l9-7 9 7v10H3z M9 20v-7h6v7'],['meeting','會議紀錄','M6 3h12v18H6z M9 8h6 M9 12h6 M9 16h4'],['staff','工作分工','M9 7a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M5 21v-3a7 7 0 0 1 14 0v3'],['counts','人數統計','M5 20V12 M12 20V4 M19 20V8 M3 20h18'],['tasks','籌備進度','M9 6h12 M9 12h12 M9 18h12 M3 6l1 1 2-2 M3 12l1 1 2-2 M3 18l1 1 2-2'],['uploads','幸福1+1稿件與PPT','M12 16V3 M7 8l5-5 5 5 M4 15v6h16v-6'],['sandplay','正式沙推表下載','M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5']];
 function tabIcon(path){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path.split(' M').map((p,i)=>`<path d="${i?'M':''}${p}"/>`).join('')}</svg>`}
-function districtTabs(){return DISTRICT_TABS.filter(([key])=>['summary','meeting','uploads'].includes(key)).map(([key,label,icon])=>[key,key==='meeting'?'運營紀錄':label,icon])}
-function districtNavigation(){const i=districtTabs().findIndex(([k])=>k===tab);return `<div class="district-navigation"><div class="tab-guide"><span>地區功能 <b>${i+1} / ${districtTabs().length}</b></span><small>滑動或按箭頭查看，點選功能</small></div><div class="tab-controls"><button class="tab-arrow" id="tab-previous" aria-label="向左查看功能">${tabIcon('M15 6l-6 6 6 6')}</button><div class="tabs" role="tablist" aria-label="地區功能">${districtTabs().map(([k,v,icon])=>`<button id="district-tab-${k}" role="tab" aria-controls="district-tab-panel" aria-selected="${tab===k}" tabindex="${tab===k?'0':'-1'}" class="${tab===k?'active':''}" data-tab="${k}">${tabIcon(icon)}<span>${v}</span></button>`).join('')}</div><button class="tab-arrow" id="tab-next" aria-label="向右查看功能">${tabIcon('M9 6l6 6-6 6')}</button></div></div>`}
+function districtTabs(){return DISTRICT_TABS.filter(([key])=>['summary','meeting','uploads','sandplay'].includes(key)).map(([key,label,icon])=>[key,key==='meeting'?'運營紀錄':label,icon])}
+function districtNavigation(){const i=districtTabs().findIndex(([k])=>k===tab);return `<div class="district-navigation"><div class="tab-guide"><span>地區功能 <b>${i+1} / ${districtTabs().length}</b></span><small>點選下方功能</small></div><div class="tab-controls"><button class="tab-arrow" id="tab-previous" aria-label="向左查看功能">${tabIcon('M15 6l-6 6 6 6')}</button><div class="tabs" role="tablist" aria-label="地區功能">${districtTabs().map(([k,v,icon])=>`<button id="district-tab-${k}" role="tab" aria-controls="district-tab-panel" aria-selected="${tab===k}" tabindex="${tab===k?'0':'-1'}" class="${tab===k?'active':''}${k==='sandplay'?' sandplay-nav':''}" data-tab="${k}">${tabIcon(icon)}<span>${v}</span></button>`).join('')}</div><button class="tab-arrow" id="tab-next" aria-label="向右查看功能">${tabIcon('M9 6l6 6-6 6')}</button></div></div>`}
 let navController=new AbortController();
 function bindDistrictNavigation(){navController.abort();navController=new AbortController();const strip=$('.tabs');if(!strip)return;const current=districtTabs().findIndex(([k])=>k===tab);const move=(i,focus=false)=>{if(i<0||i>=districtTabs().length)return;go('district',selected,districtTabs()[i][0]);if(focus)document.querySelector('.tabs .active')?.focus({preventScroll:true})};const updateArrows=()=>{const end=strip.scrollWidth-strip.clientWidth;$('#tab-previous').disabled=strip.scrollLeft<=1;$('#tab-next').disabled=strip.scrollLeft>=end-1};const scroll=(direction)=>strip.scrollBy({left:direction*Math.max(120,strip.clientWidth*.75),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});$('#tab-previous').onclick=()=>scroll(-1);$('#tab-next').onclick=()=>scroll(1);strip.onscroll=updateArrows;strip.onkeydown=e=>{const i=e.key==='ArrowRight'?current+1:e.key==='ArrowLeft'?current-1:e.key==='Home'?0:e.key==='End'?districtTabs().length-1:null;if(i!==null){e.preventDefault();move(i,true)}};requestAnimationFrame(()=>{const active=strip.querySelector('.active');if(active)strip.scrollLeft=active.offsetLeft-strip.offsetLeft-(strip.clientWidth-active.offsetWidth)/2;updateArrows()});window.addEventListener('resize',updateArrows,{signal:navController.signal})}
-function district(){const s=SCHEDULE.find(x=>x.name===selected),d=data();return `<button class="text-btn" id="back">← 返回所有地區</button><div class="head"><div><h1>${esc(selected)}地區</h1><p class="muted">正式 ${dateLabel(s.date)} ${s.time}　／　彩排 ${dateLabel(s.rehearsal)} ${s.rehearsalTime}</p></div><label class="unit"><span>切換地區</span><select id="district-select">${SCHEDULE.map(x=>`<option ${x.name===selected?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label></div>${districtNavigation()}<div id="district-tab-panel" role="tabpanel" aria-labelledby="district-tab-${tab}">${tab==='summary'?summary(s,d):tab==='uploads'?uploadArea(d):meeting(d)}</div>`}
+function district(){const s=SCHEDULE.find(x=>x.name===selected),d=data();return `<button class="text-btn" id="back">← 返回所有地區</button><div class="head"><div><h1>${esc(selected)}地區</h1><p class="muted">正式 ${dateLabel(s.date)} ${s.time}　／　彩排 ${dateLabel(s.rehearsal)} ${s.rehearsalTime}</p></div><label class="unit"><span>切換地區</span><select id="district-select">${SCHEDULE.map(x=>`<option ${x.name===selected?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label></div>${districtNavigation()}<div id="district-tab-panel" role="tabpanel" aria-labelledby="district-tab-${tab}">${tab==='summary'?summary(s,d):tab==='sandplay'?sandplayDownloadPage(s):tab==='uploads'?uploadArea(d):meeting(d)}</div>`}
 
 function summary(s,d){return consolidatedSummary(s,d)}
 const GOOGLE_FORM_ROUTES={
@@ -555,7 +791,7 @@ function submissionRows(form){return Array.from(form.elements).filter(el=>el.nam
 function reviewSubmission(form,emailCopy=null){return new Promise(resolve=>{const title=form.dataset.reviewTitle|| (form.dataset.weekly?'四部運營協議紀錄':form.dataset.upload?(form.dataset.upload==='ppt'?'幸福1+1 PPT':'幸福1+1稿件'):{'meeting-form':'會議紀錄','staff-form':'工作分工','counts-form':'人數統計','tasks-form':'籌備進度','upload-settings-form':'Google 雲端位置'}[form.id]||'填寫內容');const dialog=document.createElement('dialog');dialog.className='submission-review';dialog.setAttribute('aria-labelledby','submission-review-title');dialog.innerHTML=`<div class="review-heading"><h2 id="submission-review-title">確定輸入內容正確嗎？</h2><p>${esc(selected)}地區 · ${esc(title)}</p></div><div class="review-content">${emailCopy?`<div class="review-email-copy"><label class="field"><span>紀錄人 Email（選填）</span><input type="email" name="recorderEmail" autocomplete="email" maxlength="254" value="${esc(emailCopy.value||'')}" placeholder="例如：name@gmail.com" aria-describedby="review-email-help"></label><p id="review-email-help" class="saved-note">填寫後，Word 上傳雲端成功時會寄送一份附件至此信箱。留白只上傳雲端；Email 不會公開顯示。</p></div>`:''}<dl>${submissionRows(form).map(({label,value})=>`<div class="review-row"><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl></div><div class="review-footer"><p class="saved-note">確認送出後儲存在此瀏覽器，尚未與其他人共用。</p><div class="actions"><button type="button" class="btn" data-review="cancel" autofocus>返回修改</button><button type="button" class="btn primary" data-review="confirm">確認送出</button></div></div>`;if(cloudConnected)dialog.innerHTML=cloudCopy(dialog.innerHTML);document.body.append(dialog);const finish=confirmed=>{dialog.close();dialog.remove();resolve(confirmed)};dialog.querySelector('[data-review="cancel"]').onclick=()=>finish(false);dialog.querySelector('[data-review="confirm"]').onclick=()=>{if(emailCopy){const input=dialog.querySelector('[name="recorderEmail"]');input.value=input.value.trim();if(!input.reportValidity())return;emailCopy.value=input.value}finish(true)};dialog.oncancel=e=>{e.preventDefault();finish(false)};dialog.showModal()})}
 function bindSubmissionReview(){document.querySelectorAll('#content form').forEach(form=>{if(form.id==='cloud-connect-form')return;const submit=form.onsubmit;if(!submit||submit.submissionReview)return;let reviewing=false;form.onsubmit=async e=>{e.preventDefault();if(reviewing)return;if(!form.reportValidity())return;if(form.classList.contains('report-confirm-form')&&!form.elements.confirmedBy.value.trim()){form.elements.confirmedBy.focus();toast('請填寫確認人姓名。');return}if(form.id==='counts-form'&&!form.elements.counter.value.trim()){form.elements.counter.focus();toast('請填寫統計人姓名。');return}if(form.id==='meeting-form'&&(!form.elements.recorder.value.trim()||!form.elements.decisions.value.trim()||Number(form.elements.round.value)<1)){toast('請填寫紀錄人、決議，運營次數需至少為 1。');return}reviewing=true;try{if(await reviewSubmission(form))await submit.call(form,e)}finally{reviewing=false}};form.onsubmit.submissionReview=true})}
 function bindOpens(){bindAttentionControls();document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>go('district',b.dataset.open,b.dataset.tab))}
-function bind(){bindSummaryRecordEdit();bindOpens();bindGoogleForm();bindDistrictNavigation();document.querySelectorAll('[data-tab]:not([data-open])').forEach(b=>b.onclick=()=>go('district',selected,b.dataset.tab));document.querySelectorAll('form').forEach(f=>f.oninput=()=>dirty=true);bindUploads();if($('#staff-search')){$('#staff-search').oninput=e=>{staffQuery=e.target.value;searchStaff()};searchStaff()}if($('#search')){$('#search').oninput=e=>{query=e.target.value;cards()};$('#filter').value=filter;$('#filter').onchange=e=>{filter=e.target.value;cards()};cards()}if($('#back'))$('#back').onclick=()=>go('overview');if($('#district-select'))$('#district-select').onchange=e=>{if(cloudBusy){e.target.value=selected;toast('正在送出，請等待完成訊息。');return}if(discard()){selected=e.target.value;summaryRecordId=null;editId=null;render()}else e.target.value=selected};if($('#meeting-form'))$('#meeting-form').onsubmit=e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));if(!f.recorder.trim()||!f.decisions.trim()||+f.round<1){toast('請填寫紀錄人、決議，運營次數需至少為 1。');return}const m={...f,id:editId||crypto.randomUUID(),reports:Object.fromEntries(reports.map((r,i)=>[r,f['report'+i]])),updatedAt:new Date().toISOString()};reports.forEach((_,i)=>delete m['report'+i]);const list=data().meetings.slice();const index=list.findIndex(x=>x.id===m.id);if(index>=0)list[index]=m;else list.push(m);if(saveDistrict({meetings:list})){editId=null;render()}};document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{if(!discard())return;editId=b.dataset.edit;render();window.scrollTo({top:0})});document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{if(!discard())return;if(confirm('確定刪除此份會議紀錄？可先匯出備份。')){if(saveDistrict({meetings:data().meetings.filter(x=>x.id!==b.dataset.delete)}))render()}});if($('#cancel-edit'))$('#cancel-edit').onclick=()=>{if(discard()){editId=null;render()}};if($('#print'))$('#print').onclick=()=>window.print();if($('#staff-form'))$('#staff-form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const staff=Object.fromEntries(roles.map((r,i)=>[r,f.get('role'+i)]));staff.notes=f.get('notes');if(saveDistrict({staff}))render()};if($('#counts-form')){const form=$('#counts-form');const sum=()=>{for(const k of ['target','invited'])for(const [type,n] of [['four',4],['all',7]]){const values=groups.slice(0,n).map((_,i)=>form.elements['count'+i+'-'+k].value);$(`[data-total="${type}-${k}"]`).textContent=values.every(v=>v==='')?'尚未填寫':values.reduce((a,v)=>a+Number(v||0),0)+(values.some(v=>v==='')?'（部分未填）':'')}};form.addEventListener('input',sum);sum();form.onsubmit=e=>{e.preventDefault();const f=new FormData(form),counts=Object.fromEntries(groups.map((g,i)=>[g,{...Object.fromEntries(['target','invited'].map(k=>[k,f.get('count'+i+'-'+k)===''?'':Number(f.get('count'+i+'-'+k))])),actual:Number(data().counts[g]?.actual||0)}]));if(saveDistrict({counts,countDate:f.get('countDate'),counter:f.get('counter'),countNotes:f.get('countNotes')}))render()}}if($('#tasks-form'))$('#tasks-form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);if(saveDistrict({tasks:Object.fromEntries(tasks.map((_,i)=>[i,f.get('task'+i)])),taskNotes:f.get('taskNotes')}))render()};if($('#export-json'))$('#export-json').onclick=()=>{if(loadError){download(localStorage.getItem(KEY)||'','district-assembly-original.json','application/json');return}download(JSON.stringify({...state,exportedAt:new Date().toISOString()},null,2),'地區總會備份-'+today()+'.json','application/json')};if($('#export-csv'))$('#export-csv').onclick=exportCsv;if($('#import-json'))$('#import-json').onclick=()=>$('#import-file').click();if($('#import-file'))$('#import-file').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>10000000)throw Error('備份超過 10 MB');const imported=JSON.parse(await file.text());validate(imported);if(!confirm('匯入會取代此瀏覽器全部網站紀錄。已備份目前資料並確定要繼續？'))return;const previousError=loadError;loadError='';if(persist(imported)){render();toast('備份已匯入')}else loadError=previousError}catch(err){toast('無法匯入：'+err.message)}finally{e.target.value=''}}}
+function bind(){bindSandplayDownload();bindSummaryRecordEdit();bindOpens();bindGoogleForm();bindDistrictNavigation();document.querySelectorAll('[data-tab]:not([data-open])').forEach(b=>b.onclick=()=>{go('district',selected,b.dataset.tab);if(b.dataset.tab==='sandplay'&&page==='district'&&tab==='sandplay')$('#download-sandplay')?.click()});document.querySelectorAll('form').forEach(f=>f.oninput=()=>dirty=true);bindUploads();if($('#staff-search')){$('#staff-search').oninput=e=>{staffQuery=e.target.value;searchStaff()};searchStaff()}if($('#search')){$('#search').oninput=e=>{query=e.target.value;cards()};$('#filter').value=filter;$('#filter').onchange=e=>{filter=e.target.value;cards()};cards()}if($('#back'))$('#back').onclick=()=>go('overview');if($('#district-select'))$('#district-select').onchange=e=>{if(cloudBusy){e.target.value=selected;toast('正在送出，請等待完成訊息。');return}if(discard()){selected=e.target.value;summaryRecordId=null;editId=null;render()}else e.target.value=selected};if($('#meeting-form'))$('#meeting-form').onsubmit=e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));if(!f.recorder.trim()||!f.decisions.trim()||+f.round<1){toast('請填寫紀錄人、決議，運營次數需至少為 1。');return}const m={...f,id:editId||crypto.randomUUID(),reports:Object.fromEntries(reports.map((r,i)=>[r,f['report'+i]])),updatedAt:new Date().toISOString()};reports.forEach((_,i)=>delete m['report'+i]);const list=data().meetings.slice();const index=list.findIndex(x=>x.id===m.id);if(index>=0)list[index]=m;else list.push(m);if(saveDistrict({meetings:list})){editId=null;render()}};document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{if(!discard())return;editId=b.dataset.edit;render();window.scrollTo({top:0})});document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{if(!discard())return;if(confirm('確定刪除此份會議紀錄？可先匯出備份。')){if(saveDistrict({meetings:data().meetings.filter(x=>x.id!==b.dataset.delete)}))render()}});if($('#cancel-edit'))$('#cancel-edit').onclick=()=>{if(discard()){editId=null;render()}};if($('#print'))$('#print').onclick=()=>window.print();if($('#staff-form'))$('#staff-form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const staff=Object.fromEntries(roles.map((r,i)=>[r,f.get('role'+i)]));staff.notes=f.get('notes');if(saveDistrict({staff}))render()};if($('#counts-form')){const form=$('#counts-form');const sum=()=>{for(const k of ['target','invited'])for(const [type,n] of [['four',4],['all',7]]){const values=groups.slice(0,n).map((_,i)=>form.elements['count'+i+'-'+k].value);$(`[data-total="${type}-${k}"]`).textContent=values.every(v=>v==='')?'尚未填寫':values.reduce((a,v)=>a+Number(v||0),0)+(values.some(v=>v==='')?'（部分未填）':'')}};form.addEventListener('input',sum);sum();form.onsubmit=e=>{e.preventDefault();const f=new FormData(form),counts=Object.fromEntries(groups.map((g,i)=>[g,{...Object.fromEntries(['target','invited'].map(k=>[k,f.get('count'+i+'-'+k)===''?'':Number(f.get('count'+i+'-'+k))])),actual:Number(data().counts[g]?.actual||0)}]));if(saveDistrict({counts,countDate:f.get('countDate'),counter:f.get('counter'),countNotes:f.get('countNotes')}))render()}}if($('#tasks-form'))$('#tasks-form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);if(saveDistrict({tasks:Object.fromEntries(tasks.map((_,i)=>[i,f.get('task'+i)])),taskNotes:f.get('taskNotes')}))render()};if($('#export-json'))$('#export-json').onclick=()=>{if(loadError){download(localStorage.getItem(KEY)||'','district-assembly-original.json','application/json');return}download(JSON.stringify({...state,exportedAt:new Date().toISOString()},null,2),'地區總會備份-'+today()+'.json','application/json')};if($('#export-csv'))$('#export-csv').onclick=exportCsv;if($('#import-json'))$('#import-json').onclick=()=>$('#import-file').click();if($('#import-file'))$('#import-file').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>10000000)throw Error('備份超過 10 MB');const imported=JSON.parse(await file.text());validate(imported);if(!confirm('匯入會取代此瀏覽器全部網站紀錄。已備份目前資料並確定要繼續？'))return;const previousError=loadError;loadError='';if(persist(imported)){render();toast('備份已匯入')}else loadError=previousError}catch(err){toast('無法匯入：'+err.message)}finally{e.target.value=''}}}
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type:type+';charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('已產生下載檔案')}
 function exportCsv(){const rows=[['地區','正式日期','正式時間','彩排日期','彩排時間','彩排場地','支援地區','會議紀錄份數','籌備完成度','分類','人數目標','已邀約']];SCHEDULE.forEach(s=>{const d=overviewCurrentData(data(s.name));groups.forEach(g=>rows.push([s.name,s.date,s.time,s.rehearsal,s.rehearsalTime,s.venue,s.support,d.meetings.length,completion(d).pct+'%',g,d.counts[g]?.target??'',d.counts[g]?.invited??'']))});download('\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n'),'地區總會統計-'+today()+'.csv','text/csv')}
 function uploadArea(d){return `<section class="panel"><h2>幸福1+1稿件與PPT</h2><p class="muted">${esc(selected)}地區的發表稿與簡報，分開整理、保存。</p><div class="notice">選擇檔案並確認送出，由系統自動上傳至指定位置。使用者不需要進入雲端資料夾。</div><div class="upload-grid">${[['manuscript','幸福1+1稿件','Word、PDF 或文字檔','.doc,.docx,.pdf,.txt,.odt'],['ppt','幸福1+1 PPT','PowerPoint 或 PDF','.ppt,.pptx,.pdf']].map(([key,title,hint,accept])=>`<section class="upload-box"><h3>${title}</h3><p class="muted">${hint} · 每個檔案上限25 MB</p><form data-upload="${key}"><label class="field"><span>選擇${key==='ppt'?'簡報':'稿件'}檔案</span><input name="file" type="file" accept="${accept}" required aria-label="選擇${title}檔案"></label><div style="margin-top:14px">${field('發表人／檔案說明（選填）','description')}</div><button class="btn primary" type="submit" style="margin-top:18px">上傳${key==='ppt'?'PPT':'稿件'}</button></form><div class="file-list" id="files-${key}" aria-live="polite">正在讀取檔案…</div></section>`).join('')}</div></section>`}
