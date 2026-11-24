@@ -123,3 +123,5 @@ form input.needs-confirmation:focus,form textarea.needs-confirmation:focus,form 
 @media(max-width:700px){.district-navigation .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;gap:8px}.district-navigation .tabs button{min-width:0;white-space:normal;justify-content:center;padding:12px 8px;font-size:16px}.district-navigation .tabs button svg{width:22px;height:22px}.district-navigation .tab-arrow{display:none}.district-navigation .tab-guide small{max-width:none}.district-navigation .tab-controls{display:block}}
 
 .sandplay-file{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:-8px 0 24px}.sandplay-file:empty{display:none}.sandplay-direct{font-weight:700;text-underline-offset:4px}.sandplay-direct:focus-visible{outline:3px solid #cf9b49;outline-offset:4px}
+
+.download-status{min-height:28px;margin:12px 0 26px}.related-downloads .sandplay-download{margin-bottom:24px}.related-downloads .sandplay-download:last-child{margin-bottom:0}
