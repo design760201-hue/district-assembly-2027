@@ -12,7 +12,7 @@ function ensureCloudBridge(){if(cloudBridge)return Promise.resolve();if(cloudRea
 async function cloudRequest(action,payload={}){await ensureCloudBridge();return new Promise((resolve,reject)=>{const id=crypto.randomUUID(),timer=setTimeout(()=>{cloudPending.delete(id);reject(Error('送出逾時，尚未確認是否完成。請使用原內容重試，系統會防止重複建立。'))},120000);cloudPending.set(id,{resolve,reject,timer});cloudBridge.postMessage({channel:'assembly-cloud',nonce:cloudNonce,id,request:JSON.parse(JSON.stringify({action,payload,public:true,test:cloudTestMode}))},'*')})}
 function cloudApply(db){validate(db);removeRetiredTestRecord(db);state=db;cloudSyncAt=new Date().toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei'});try{sessionStorage.setItem(KEY+'-cloud-cache',JSON.stringify(db))}catch{}}
 function cloudEditingView(){return page==='district'&&(tab==='meeting'||Boolean(document.querySelector('#content [data-upload]')))}
-function cloudPreserveInput(){return dirty||cloudBusy||cloudConnected&&cloudEditingView()||Boolean(document.querySelector('dialog[open]'))}
+function cloudPreserveInput(){return dirty||cloudBusy||(typeof sandplayExportBusy!=='undefined'&&sandplayExportBusy)||cloudConnected&&cloudEditingView()||Boolean(document.querySelector('dialog[open]'))}
 async function cloudLoad(silent=false){
   if(cloudBusy||cloudLoading||silent&&cloudConnected&&(dirty||cloudEditingView()))return;
   if(!silent&&dirty&&!discard())return;
